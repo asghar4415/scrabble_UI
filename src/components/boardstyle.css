@@ -1,0 +1,31 @@
+.scrabble-board {
+    display: inline-block;
+    border: 2px solid var(--board-color);
+    background-color: var(--board-color);
+  }
+  
+  .board-row {
+    display: flex;
+  }
+  
+  .board-cell {
+    width: 40px;
+    height: 40px;
+    background-color: var(--cell-color);
+    margin: 1px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    position: relative;
+  }
+  
+  .board-cell.selected {
+    background-color: var(--accent-color);
+  }
+  
+  .cell-content {
+    font-weight: bold;
+    color: white;
+    font-size: 1.2rem;
+  }

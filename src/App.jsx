@@ -1,62 +1,255 @@
-import React, { useState } from 'react';
-import { GameProvider } from './contexts/gameContext';
-import GamePage from './pages/GamePage';
-// import AIVsAIPage from './pages/AIVsAIPage/AIVsAIPage'; 
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { BrowserRouter as Router, Route, Routes, useNavigate } from 'react-router-dom';
+import Board from './components/board';
+import PlayerRack from './components/playerRack';
+import Scoreboard from './components/scoreboard';
+import GameControls from './components/gamecontrols';
 import './App.css';
 
-function App() {
-  const [gameMode, setGameMode] = useState(null);
+const API_BASE_URL = 'http://127.0.0.1:8000';
 
-  const renderContent = () => {
-    switch (gameMode) {
-      case 'vsAI':
-        return (
-          <GameProvider>
-            <GamePage />
-          </GameProvider>
-        );
-      case 'AIVsAI':
-        return (
-          // <GameProvider>
-          //   <AIVsAIPage />
-          // </GameProvider>
-          <>
-          </>
-        );
-      default:
-        return (
-          <div className="welcome-screen">
-            <div className="welcome-content">
-              <h1>Welcome to Scrabble UI</h1>
-              <p>The ultimate word-building challenge</p>
-              
-              <div className="game-options">
-                <button 
-                  className="game-option-btn vs-ai"
-                  onClick={() => setGameMode('vsAI')}
-                >
-                  <h2>Play vs AI</h2>
-                  <p>Test your skills against our intelligent opponent</p>
-                </button>
-                
-                <button 
-                  className="game-option-btn ai-vs-ai"
-                  onClick={() => setGameMode('AIVsAI')}
-                >
-                  <h2>AI vs AI</h2>
-                  <p>Watch two AI opponents battle it out</p>
-                </button>
-              </div>
-            </div>
-          </div>
-        );
+const GameContext = createContext();
+
+const GameProvider = ({ children }) => {
+  const [gameState, setGameState] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [selectedTile, setSelectedTile] = useState(null);
+  const [selectedCell, setSelectedCell] = useState(null);
+  const [direction, setDirection] = useState('horizontal');
+
+  const startGame = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/game/start`);
+      const data = await response.json();
+      return data;
+    } catch (err) {
+      throw new Error('Failed to start game');
     }
   };
 
+  const makeMove = async (word, row, col, direction) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/game/move`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ word, row, col, direction }),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || 'Failed to make move');
+      }
+      return await response.json();
+    } catch (err) {
+      throw err;
+    }
+  };
+
+  const getGameState = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/game/state`);
+      return await response.json();
+    } catch (err) {
+      throw new Error('Failed to get game state');
+    }
+  };
+
+  const initGame = useCallback(async () => {
+    setLoading(true);
+    try {
+      const state = await startGame();
+      setGameState(state);
+      setError(null);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const startNewGame = useCallback(async () => {
+    await initGame();
+  }, [initGame]);
+
+  const makePlayerMove = useCallback(async () => {
+    if (!selectedTile || !selectedCell) return;
+    
+    setLoading(true);
+    try {
+      const { letter } = selectedTile;
+      const { row, col } = selectedCell;
+      const state = await makeMove(letter, row, col, direction);
+      setGameState(state);
+      setSelectedTile(null);
+      setSelectedCell(null);
+      setError(null);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedTile, selectedCell, direction]);
+
+  useEffect(() => {
+    initGame();
+  }, [initGame]);
+
+  const value = {
+    gameState,
+    loading,
+    error,
+    selectedTile,
+    setSelectedTile,
+    selectedCell,
+    setSelectedCell,
+    direction,
+    setDirection,
+    startNewGame,
+    makePlayerMove
+  };
+
   return (
-    <div className="app">
-      {renderContent()}
+    <GameContext.Provider value={value}>
+      {children}
+    </GameContext.Provider>
+  );
+};
+
+const useGame = () => useContext(GameContext);
+
+const HomePage = () => {
+  const navigate = useNavigate();
+
+  return (
+    <div className="welcome-screen">
+        <div className="welcome-content">
+          <div className="scrabble-title">
+            {['S','C','R','A','B','B','L','E'].map((letter, i) => (
+              <span key={i} className={`tile-${i}`}>{letter}</span>
+            ))}
+          </div>
+          <p className="tagline">The Classic Word Game</p>
+          
+          <div className="game-options">
+            <button 
+              className="game-option-btn vs-ai"
+              onClick={() => navigate('/vs-ai')}
+            >
+              <span className="tile-letter">P</span>
+              <div className="option-text">
+                <h2>Play vs AI</h2>
+                <p>Challenge our advanced Scrabble AI</p>
+              </div>
+            </button>
+            
+            <button 
+              className="game-option-btn ai-vs-ai"
+              onClick={() => navigate('/ai-vs-ai')}
+            >
+              <span className="tile-letter">A</span>
+              <div className="option-text">
+                <h2>AI vs AI</h2>
+                <p>Watch algorithmic masters compete</p>
+              </div>
+            </button>
+          </div>
+        </div>
     </div>
+  );
+};
+const GamePage = () => {
+  const {
+    gameState,
+    loading,
+    error,
+    selectedTile,
+    setSelectedTile,
+    selectedCell,
+    setSelectedCell,
+    direction,
+    setDirection,
+    startNewGame,
+    makePlayerMove
+  } = useGame();
+
+  const handleTileClick = (tile) => {
+    setSelectedTile(tile);
+  };
+
+  const handleCellClick = (cell) => {
+    setSelectedCell(cell);
+  };
+
+  if (!gameState) return <div className="loading-screen">Loading game...</div>;
+
+  return (
+    <div className="game-container">
+      <div className="game-header">
+        <h1 className="game-title">SCRABBLE</h1>
+      </div>
+      
+      {error && <div className="error-message">{error}</div>}
+      
+      <div className="game-main">
+        <div className="game-board-wrapper">
+          <Board 
+            board={gameState.board} 
+            onCellClick={handleCellClick}
+            selectedCell={selectedCell}
+          />
+        </div>
+        <div className="game-board-wrapper">
+        <div className="game-controls-panel">
+          <Scoreboard 
+          playerScore={gameState.scores.human} 
+          aiScore={gameState.scores.ai} 
+        />
+          
+          <div className="player-rack-section">
+            <h3>Your Tiles</h3>
+            <PlayerRack 
+              tiles={gameState.player_rack} 
+              onTileClick={handleTileClick}
+              selectedTile={selectedTile}
+            />
+          </div>
+          
+          <GameControls
+            direction={direction}
+            setDirection={setDirection}
+            onMakeMove={makePlayerMove}
+            onNewGame={startNewGame}
+            currentPlayer={gameState.current_player}
+            gameOver={gameState.game_over}
+          />
+        </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+const AIVsAIPage = () => {
+  return (
+    <div className="coming-soon">
+      <h2>AI vs AI Mode</h2>
+      <p>This feature is coming soon!</p>
+    </div>
+  );
+};
+
+function App() {
+  return (
+    <Router>
+      <GameProvider>
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/vs-ai" element={<GamePage />} />
+          <Route path="/ai-vs-ai" element={<AIVsAIPage />} />
+        </Routes>
+      </GameProvider>
+    </Router>
   );
 }
 

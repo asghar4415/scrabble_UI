@@ -1,9 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { BrowserRouter as Router, Route, Routes, useNavigate } from 'react-router-dom';
 import Board from './components/board';
-import PlayerRack from './components/playerRack';
-import Scoreboard from './components/scoreboard';
-import GameControls from './components/gamecontrols';
 import './App.css';
 
 const API_BASE_URL = 'http://127.0.0.1:8000';
@@ -17,6 +14,8 @@ const GameProvider = ({ children }) => {
   const [selectedTile, setSelectedTile] = useState(null);
   const [selectedCell, setSelectedCell] = useState(null);
   const [direction, setDirection] = useState('horizontal');
+  const [currentWord, setCurrentWord] = useState([]);
+  const [placedTiles, setPlacedTiles] = useState([]);
 
   const startGame = async () => {
     try {
@@ -61,6 +60,8 @@ const GameProvider = ({ children }) => {
     try {
       const state = await startGame();
       setGameState(state);
+      setCurrentWord([]);
+      setPlacedTiles([]);
       setError(null);
     } catch (err) {
       setError(err.message);
@@ -73,24 +74,43 @@ const GameProvider = ({ children }) => {
     await initGame();
   }, [initGame]);
 
+  const placeTileOnBoard = useCallback((row, col) => {
+    if (!selectedTile) return;
+    
+    const newTile = {
+      letter: selectedTile.letter,
+      position: { row, col }
+    };
+    
+    setCurrentWord(prev => [...prev, newTile]);
+    setPlacedTiles(prev => [...prev, newTile]);
+    setSelectedTile(null);
+  }, [selectedTile]);
+
+  const clearCurrentWord = useCallback(() => {
+    setCurrentWord([]);
+    setPlacedTiles([]);
+  }, []);
+
   const makePlayerMove = useCallback(async () => {
-    if (!selectedTile || !selectedCell) return;
+    if (currentWord.length === 0) return;
     
     setLoading(true);
     try {
-      const { letter } = selectedTile;
-      const { row, col } = selectedCell;
-      const state = await makeMove(letter, row, col, direction);
+      const { row, col } = currentWord[0].position;
+      const word = currentWord.map(tile => tile.letter).join('');
+      
+      const state = await makeMove(word, row, col, direction);
       setGameState(state);
-      setSelectedTile(null);
-      setSelectedCell(null);
+      setCurrentWord([]);
+      setPlacedTiles([]);
       setError(null);
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
-  }, [selectedTile, selectedCell, direction]);
+  }, [currentWord, direction]);
 
   useEffect(() => {
     initGame();
@@ -107,7 +127,11 @@ const GameProvider = ({ children }) => {
     direction,
     setDirection,
     startNewGame,
-    makePlayerMove
+    makePlayerMove,
+    placeTileOnBoard,
+    currentWord,
+    placedTiles,
+    clearCurrentWord
   };
 
   return (
@@ -124,41 +148,42 @@ const HomePage = () => {
 
   return (
     <div className="welcome-screen">
-        <div className="welcome-content">
-          <div className="scrabble-title">
-            {['S','C','R','A','B','B','L','E'].map((letter, i) => (
-              <span key={i} className={`tile-${i}`}>{letter}</span>
-            ))}
-          </div>
-          <p className="tagline">The Classic Word Game</p>
-          
-          <div className="game-options">
-            <button 
-              className="game-option-btn vs-ai"
-              onClick={() => navigate('/vs-ai')}
-            >
-              <span className="tile-letter">P</span>
-              <div className="option-text">
-                <h2>Play vs AI</h2>
-                <p>Challenge our advanced Scrabble AI</p>
-              </div>
-            </button>
-            
-            <button 
-              className="game-option-btn ai-vs-ai"
-              onClick={() => navigate('/ai-vs-ai')}
-            >
-              <span className="tile-letter">A</span>
-              <div className="option-text">
-                <h2>AI vs AI</h2>
-                <p>Watch algorithmic masters compete</p>
-              </div>
-            </button>
-          </div>
+      <div className="welcome-content">
+        <div className="scrabble-title">
+          {['S','C','R','A','B','B','L','E'].map((letter, i) => (
+            <span key={i} className={`tile-${i}`}>{letter}</span>
+          ))}
         </div>
+        <p className="tagline">The Classic Word Game</p>
+        
+        <div className="game-options">
+          <button 
+            className="game-option-btn vs-ai"
+            onClick={() => navigate('/vs-ai')}
+          >
+            <span className="tile-letter">P</span>
+            <div className="option-text">
+              <h2>Play vs AI</h2>
+              <p>Challenge our advanced Scrabble AI</p>
+            </div>
+          </button>
+          
+          <button 
+            className="game-option-btn ai-vs-ai"
+            onClick={() => navigate('/ai-vs-ai')}
+          >
+            <span className="tile-letter">A</span>
+            <div className="option-text">
+              <h2>AI vs AI</h2>
+              <p>Watch algorithmic masters compete</p>
+            </div>
+          </button>
+        </div>
+      </div>
     </div>
   );
 };
+
 const GamePage = () => {
   const {
     gameState,
@@ -171,7 +196,11 @@ const GamePage = () => {
     direction,
     setDirection,
     startNewGame,
-    makePlayerMove
+    makePlayerMove,
+    placeTileOnBoard,
+    currentWord,
+    placedTiles,
+    clearCurrentWord
   } = useGame();
 
   const handleTileClick = (tile) => {
@@ -179,57 +208,41 @@ const GamePage = () => {
   };
 
   const handleCellClick = (cell) => {
-    setSelectedCell(cell);
+    if (selectedTile) {
+      placeTileOnBoard(cell.row, cell.col);
+    } else {
+      setSelectedCell(cell);
+    }
   };
 
   if (!gameState) return <div className="loading-screen">Loading game...</div>;
 
   return (
     <div className="game-container">
-      <div className="game-header">
-        <h1 className="game-title">SCRABBLE</h1>
-      </div>
-      
       {error && <div className="error-message">{error}</div>}
-      
-      <div className="game-main">
-        <div className="game-board-wrapper">
-          <Board 
-            board={gameState.board} 
-            onCellClick={handleCellClick}
-            selectedCell={selectedCell}
-          />
-        </div>
-        <div className="game-board-wrapper">
-        <div className="game-controls-panel">
-          <Scoreboard 
-          playerScore={gameState.scores.human} 
-          aiScore={gameState.scores.ai} 
-        />
-          
-          <div className="player-rack-section">
-            <h3>Your Tiles</h3>
-            <PlayerRack 
-              tiles={gameState.player_rack} 
-              onTileClick={handleTileClick}
-              selectedTile={selectedTile}
-            />
-          </div>
-          
-          <GameControls
-            direction={direction}
-            setDirection={setDirection}
-            onMakeMove={makePlayerMove}
-            onNewGame={startNewGame}
-            currentPlayer={gameState.current_player}
-            gameOver={gameState.game_over}
-          />
-        </div>
-        </div>
-      </div>
+      <Board 
+        board={gameState.board} 
+        onCellClick={handleCellClick}
+        selectedCell={selectedCell}
+        placedTiles={placedTiles}
+        tiles={gameState.player_rack}
+        onTileClick={handleTileClick}
+        selectedTile={selectedTile}
+        currentWord={currentWord}
+        direction={direction}
+        setDirection={setDirection}
+        onMakeMove={makePlayerMove}
+        onNewGame={startNewGame}
+        currentPlayer={gameState.current_player}
+        gameOver={gameState.game_over}
+        onClearWord={clearCurrentWord}
+        playerScore={gameState.scores.human}
+        aiScore={gameState.scores.ai}
+      />
     </div>
   );
 };
+
 const AIVsAIPage = () => {
   return (
     <div className="coming-soon">

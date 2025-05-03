@@ -229,3 +229,51 @@
       min-width: auto;
     }
   }
+
+ /* Premium square styles */
+.DL { background-color: #b5d8f0; }
+.TL { background-color: #9D1F15; color: white; }
+.DW { background-color: #ff9999; }
+.TW { background-color: #ff6666; }
+
+.square-indicator {
+  position: absolute;
+  font-size: 0.6rem;
+  font-weight: bold;
+  opacity: 0.8;
+}
+
+.DL .square-indicator, 
+.TL .square-indicator {
+  bottom: 2px;
+  right: 2px;
+}
+
+.DW .square-indicator,
+.TW .square-indicator {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 0.8rem;
+}
+
+.turn-indicator {
+  margin-left: 10px;
+  font-size: 0.8rem;
+  color: #9D1F15;
+  font-weight: bold;
+}
+
+/* Add these styles */
+.board-cell.TW, .board-cell.DW {
+  position: relative;
+}
+
+.board-cell.TL, .board-cell.DL {
+  position: relative;
+}
+
+.board-cell.TW { background-color: #ff6666; }
+.board-cell.DW { background-color: #ff9999; }
+.board-cell.TL { background-color: #9D1F15; color: white; }
+.board-cell.DL { background-color: #b5d8f0; }

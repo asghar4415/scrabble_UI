@@ -7,6 +7,9 @@ const API_BASE_URL = 'http://127.0.0.1:8000';
 
 const GameContext = createContext();
 
+// ======================
+// Game Context Provider
+// ======================
 const GameProvider = ({ children }) => {
   const [gameState, setGameState] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -17,100 +20,143 @@ const GameProvider = ({ children }) => {
   const [currentWord, setCurrentWord] = useState([]);
   const [placedTiles, setPlacedTiles] = useState([]);
 
-  const startGame = async () => {
+  // ======================
+  // Game Initialization
+  // ======================
+  const fetchGameState = async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/api/game/start`);
-      const data = await response.json();
-      return data;
+      if (!response.ok) throw new Error('Failed to fetch game state');
+      return await response.json();
     } catch (err) {
       throw new Error('Failed to start game');
-    }
-  };
-
-  const makeMove = async (word, row, col, direction) => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/game/move`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ word, row, col, direction }),
-      });
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.detail || 'Failed to make move');
-      }
-      return await response.json();
-    } catch (err) {
-      throw err;
-    }
-  };
-
-  const getGameState = async () => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/game/state`);
-      return await response.json();
-    } catch (err) {
-      throw new Error('Failed to get game state');
     }
   };
 
   const initGame = useCallback(async () => {
     setLoading(true);
     try {
-      const state = await startGame();
+      const state = await fetchGameState();
       setGameState(state);
-      setCurrentWord([]);
-      setPlacedTiles([]);
-      setError(null);
+      resetBoardState();
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
   }, []);
+
+  const resetBoardState = () => {
+    setCurrentWord([]);
+    setPlacedTiles([]);
+    setSelectedTile(null);
+    setSelectedCell(null);
+    setError(null);
+  };
 
   const startNewGame = useCallback(async () => {
     await initGame();
   }, [initGame]);
 
-  const placeTileOnBoard = useCallback((row, col) => {
-    if (!selectedTile) return;
+  // ======================
+  // Game Move Handling
+  // ======================
+  const validateFirstMove = (word) => {
+    if (!gameState?.first_move) return true;
     
-    const newTile = {
-      letter: selectedTile.letter,
-      position: { row, col }
-    };
-    
-    setCurrentWord(prev => [...prev, newTile]);
-    setPlacedTiles(prev => [...prev, newTile]);
-    setSelectedTile(null);
-  }, [selectedTile]);
-
-  const clearCurrentWord = useCallback(() => {
-    setCurrentWord([]);
-    setPlacedTiles([]);
-  }, []);
+    const center = 7;
+    return placedTiles.some(({ position }) => {
+      if (direction === 'horizontal') {
+        return position.row === center && 
+               position.col <= center && 
+               center < position.col + word.length;
+      } else {
+        return position.col === center && 
+               position.row <= center && 
+               center < position.row + word.length;
+      }
+    });
+  };
 
   const makePlayerMove = useCallback(async () => {
-    if (currentWord.length === 0) return;
+    if (currentWord.length === 0) {
+      setError("Please place at least one tile");
+      return;
+    }
     
     setLoading(true);
     try {
-      const { row, col } = currentWord[0].position;
       const word = currentWord.map(tile => tile.letter).join('');
       
-      const state = await makeMove(word, row, col, direction);
-      setGameState(state);
-      setCurrentWord([]);
-      setPlacedTiles([]);
-      setError(null);
+      if (!validateFirstMove(word)) {
+        throw new Error("First word must pass through center (H8)");
+      }
+
+      const { row, col } = currentWord[0].position;
+      const response = await fetch(`${API_BASE_URL}/api/game/move`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          word: word,
+          row: row,
+          col: col,
+          direction: direction
+        }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Move failed:", errorData); // Debug log
+        throw new Error(errorData.detail || 'Invalid move');
+      }
+
+      const newState = await response.json();
+      setGameState(newState);
+      resetBoardState();
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
-  }, [currentWord, direction]);
+  }, [currentWord, direction, gameState, placedTiles]);
+
+  // ======================
+  // Board Interaction
+  // ======================
+  const placeTileOnBoard = useCallback((row, col) => {
+    if (!selectedTile) return;
+    
+    if (gameState?.board[row][col] !== null) {
+      setError("Cannot place tile on occupied cell");
+      return;
+    }
+
+    const isFirstTile = currentWord.length === 0;
+    const isValidPlacement = isFirstTile || 
+      (direction === 'horizontal' && row === currentWord[0].position.row) ||
+      (direction === 'vertical' && col === currentWord[0].position.col);
+
+    if (!isValidPlacement) {
+      setError("Tiles must be placed in a straight line");
+      return;
+    }
+
+    setCurrentWord(prev => [...prev, {
+      letter: selectedTile.letter,
+      position: { row, col }
+    }]);
+    setPlacedTiles(prev => [...prev, {
+      letter: selectedTile.letter,
+      position: { row, col }
+    }]);
+    setSelectedTile(null);
+  }, [selectedTile, gameState, currentWord, direction]);
+
+  const clearCurrentWord = useCallback(() => {
+    setCurrentWord([]);
+    setPlacedTiles([]);
+    setError(null);
+  }, []);
 
   useEffect(() => {
     initGame();
@@ -120,6 +166,7 @@ const GameProvider = ({ children }) => {
     gameState,
     loading,
     error,
+    setError,
     selectedTile,
     setSelectedTile,
     selectedCell,
@@ -143,6 +190,9 @@ const GameProvider = ({ children }) => {
 
 const useGame = () => useContext(GameContext);
 
+// ======================
+// Page Components
+// ======================
 const HomePage = () => {
   const navigate = useNavigate();
 
@@ -189,6 +239,7 @@ const GamePage = () => {
     gameState,
     loading,
     error,
+    setError,
     selectedTile,
     setSelectedTile,
     selectedCell,
@@ -205,6 +256,7 @@ const GamePage = () => {
 
   const handleTileClick = (tile) => {
     setSelectedTile(tile);
+    setError(null);
   };
 
   const handleCellClick = (cell) => {
@@ -219,7 +271,22 @@ const GamePage = () => {
 
   return (
     <div className="game-container">
-      {error && <div className="error-message">{error}</div>}
+      {loading && (
+        <div className="loading-overlay">
+          <div className="loading-spinner"></div>
+        </div>
+      )}
+      {error && (
+        <div className="error-message">
+          {error}
+          <button 
+            className="dismiss-error" 
+            onClick={() => setError(null)}
+          >
+            ×
+          </button>
+        </div>
+      )}
       <Board 
         board={gameState.board} 
         onCellClick={handleCellClick}
@@ -252,6 +319,9 @@ const AIVsAIPage = () => {
   );
 };
 
+// ======================
+// Main App Component
+// ======================
 function App() {
   return (
     <Router>

@@ -1,5 +1,5 @@
-// Board.jsx
 import React from 'react';
+import PropTypes from 'prop-types';
 import './boardstyles.css';
 
 // Letter scores (should match backend)
@@ -12,23 +12,44 @@ const LETTER_SCORES = {
   'Z': 10, ' ': 0
 };
 
-// BoardCell component (now internal)
+const premiumSquares = {
+  '0,0': 'TW', '0,7': 'TW', '0,14': 'TW',
+  '7,0': 'TW', '7,14': 'TW', '14,0': 'TW',
+  '14,7': 'TW', '14,14': 'TW',
+  '1,1': 'DW', '2,2': 'DW', '3,3': 'DW', '4,4': 'DW',
+  '10,10': 'DW', '11,11': 'DW', '12,12': 'DW', '13,13': 'DW',
+  '1,5': 'TL', '1,9': 'TL', '5,1': 'TL', '5,5': 'TL',
+  '5,9': 'TL', '5,13': 'TL', '9,1': 'TL', '9,5': 'TL',
+  '9,9': 'TL', '9,13': 'TL', '13,5': 'TL', '13,9': 'TL',
+  '0,3': 'DL', '0,11': 'DL', '2,6': 'DL', '2,8': 'DL',
+  '3,0': 'DL', '3,7': 'DL', '3,14': 'DL', '6,2': 'DL',
+  '6,6': 'DL', '6,8': 'DL', '6,12': 'DL', '7,3': 'DL',
+  '7,11': 'DL', '8,2': 'DL', '8,6': 'DL', '8,8': 'DL',
+  '8,12': 'DL', '11,0': 'DL', '11,7': 'DL', '11,14': 'DL',
+  '12,6': 'DL', '12,8': 'DL', '14,3': 'DL', '14,11': 'DL'
+};
+
+// BoardCell component
 const BoardCell = ({ letter, row, col, onClick, isSelected, isPlaced }) => {
   const handleClick = () => {
     onClick({ row, col });
   };
+  const squareType = premiumSquares[`${row},${col}`];
 
   return (
     <div 
-      className={`board-cell 
+      className={`board-cell ${squareType || ''} 
         ${isSelected ? 'selected' : ''} 
-        ${isPlaced ? 'placed' : ''}
-      `}
+        ${isPlaced ? 'placed' : ''}`}
       onClick={handleClick}
+      data-testid={`cell-${row}-${col}`}
     >
+      {!letter && squareType && (
+        <div className="square-indicator">{squareType}</div>
+      )}
       {letter && (
         <div className="cell-tile">
-          {letter}
+          {letter === ' ' ? '★' : letter}
           {letter !== ' ' && (
             <span className="tile-score">
               {LETTER_SCORES[letter] || 0}
@@ -40,34 +61,45 @@ const BoardCell = ({ letter, row, col, onClick, isSelected, isPlaced }) => {
   );
 };
 
-// PlayerRack component (now internal)
-const PlayerRack = ({ tiles = [], onTileClick, selectedTile, currentWord = [] }) => {
-  const availableTiles = Array.isArray(tiles) ? 
-    tiles.filter(tile => 
-      !Array.isArray(currentWord) || 
-      !currentWord.some(placed => placed.letter === tile)
-    ) : 
-    [];
+BoardCell.propTypes = {
+  letter: PropTypes.string,
+  row: PropTypes.number.isRequired,
+  col: PropTypes.number.isRequired,
+  onClick: PropTypes.func.isRequired,
+  isSelected: PropTypes.bool,
+  isPlaced: PropTypes.bool
+};
 
+// PlayerRack component
+const PlayerRack = ({ tiles, onTileClick, selectedTile }) => {
   return (
     <div className="player-rack">
-      {availableTiles.map((letter, index) => (
+      {tiles.map((letter, index) => (
         <div
-          key={`${letter}-${index}`}
-          className={`tile ${selectedTile?.letter === letter ? 'selected' : ''}`}
+          key={index}
+          className={`tile ${selectedTile?.index === index ? 'selected' : ''}`}
           onClick={() => onTileClick({ letter, index })}
+          data-testid={`tile-${index}`}
         >
-          {letter}
-          <span className="tile-score">
-            {LETTER_SCORES[letter] || 0}
-          </span>
+          {letter === ' ' ? '★' : letter}
+          {letter !== ' ' && (
+            <span className="tile-score">
+              {LETTER_SCORES[letter] || 0}
+            </span>
+          )}
         </div>
       ))}
     </div>
   );
 };
 
-// GameControls component (now internal)
+PlayerRack.propTypes = {
+  tiles: PropTypes.arrayOf(PropTypes.string).isRequired,
+  onTileClick: PropTypes.func.isRequired,
+  selectedTile: PropTypes.object
+};
+
+// GameControls component
 const GameControls = ({
   direction,
   setDirection,
@@ -75,66 +107,109 @@ const GameControls = ({
   onNewGame,
   currentPlayer,
   gameOver,
-  onClearWord
+  onClearWord,
+  playerScore,
+  aiScore
 }) => {
   return (
     <div className="game-controls">
-      <div className="direction-toggle">
-        <button
-          onClick={() => setDirection('horizontal')}
-          className={direction === 'horizontal' ? 'active' : ''}
-        >
-          Horizontal
-        </button>
-        <button
-          onClick={() => setDirection('vertical')}
-          className={direction === 'vertical' ? 'active' : ''}
-        >
-          Vertical
-        </button>
-      </div>
-      
-      <div className="action-buttons">
-        <button 
-          onClick={onMakeMove}
-          disabled={currentPlayer !== 'human' || gameOver}
-        >
-          Submit Move
-        </button>
-        <button onClick={onClearWord}>
-          Clear
-        </button>
-        <button onClick={onNewGame}>
-          New Game
-        </button>
-      </div>
-      
-      {gameOver && (
+      {gameOver ? (
         <div className="game-over-message">
-          Game Over! Final scores displayed above.
+          <h3>Game Over!</h3>
+          <p>
+            Final Score: You {playerScore} - {aiScore} AI
+          </p>
+          <button 
+            onClick={onNewGame} 
+            className="new-game-btn"
+            data-testid="new-game-btn"
+          >
+            Play Again
+          </button>
         </div>
+      ) : (
+        <>
+          <div className="direction-toggle">
+            <button
+              onClick={() => setDirection('horizontal')}
+              className={direction === 'horizontal' ? 'active' : ''}
+              data-testid="horizontal-btn"
+            >
+              Horizontal
+            </button>
+            <button
+              onClick={() => setDirection('vertical')}
+              className={direction === 'vertical' ? 'active' : ''}
+              data-testid="vertical-btn"
+            >
+              Vertical
+            </button>
+          </div>
+          
+          <div className="action-buttons">
+            <button 
+              onClick={onMakeMove}
+              disabled={currentPlayer !== 'human'}
+              data-testid="submit-move-btn"
+            >
+              Submit Move
+            </button>
+            <button 
+              onClick={onClearWord}
+              data-testid="clear-btn"
+            >
+              Clear
+            </button>
+          </div>
+        </>
       )}
     </div>
   );
 };
 
-// Scoreboard component (now internal)
+GameControls.propTypes = {
+  direction: PropTypes.string.isRequired,
+  setDirection: PropTypes.func.isRequired,
+  onMakeMove: PropTypes.func.isRequired,
+  onNewGame: PropTypes.func.isRequired,
+  currentPlayer: PropTypes.string.isRequired,
+  gameOver: PropTypes.bool.isRequired,
+  onClearWord: PropTypes.func.isRequired,
+  playerScore: PropTypes.number.isRequired,
+  aiScore: PropTypes.number.isRequired
+};
+
+// Scoreboard component
 const Scoreboard = ({ playerScore, aiScore, currentPlayer }) => {
   return (
     <div className="scoreboard">
       <div className={`score ${currentPlayer === 'human' ? 'active' : ''}`}>
-        <span className="player-label">You:</span>
-        <span className="score-value">{playerScore}</span>
+        <span className="player-label">Your Score:</span>
+        <span className="score-value" data-testid="player-score">
+          {playerScore}
+        </span>
+        {currentPlayer === 'human' && (
+          <span className="turn-indicator">← Your Turn</span>
+        )}
       </div>
       <div className={`score ${currentPlayer === 'ai' ? 'active' : ''}`}>
-        <span className="player-label">AI:</span>
-        <span className="score-value">{aiScore}</span>
+        <span className="player-label">AI Score:</span>
+        <span className="score-value" data-testid="ai-score">
+          {aiScore}
+        </span>
+        {currentPlayer === 'ai' && (
+          <span className="turn-indicator">← AI's Turn</span>
+        )}
       </div>
     </div>
   );
 };
 
-
+Scoreboard.propTypes = {
+  playerScore: PropTypes.number.isRequired,
+  aiScore: PropTypes.number.isRequired,
+  currentPlayer: PropTypes.string.isRequired
+};
 
 // Main Board component
 const Board = ({ 
@@ -172,10 +247,10 @@ const Board = ({
         <div className="board-section">
           <div className="scrabble-board">
             {renderBoard.map((row, rowIndex) => (
-              <div key={rowIndex} className="board-row">
+              <div key={`row-${rowIndex}`} className="board-row">
                 {row.map((cell, colIndex) => (
                   <BoardCell
-                    key={`${rowIndex}-${colIndex}`}
+                    key={`cell-${rowIndex}-${colIndex}`}
                     letter={cell}
                     row={rowIndex}
                     col={colIndex}
@@ -191,21 +266,18 @@ const Board = ({
           </div>
         </div>
         
-        
         <div className="game-sidebar">
-        <Scoreboard 
-              playerScore={playerScore} 
-              aiScore={aiScore} 
-              currentPlayer={currentPlayer}
-            />
+          <Scoreboard 
+            playerScore={playerScore} 
+            aiScore={aiScore} 
+            currentPlayer={currentPlayer}
+          />
           <div className="player-rack-section">
             <h3>Your Tiles</h3>
-            
             <PlayerRack 
               tiles={tiles}
               onTileClick={onTileClick}
               selectedTile={selectedTile}
-              currentWord={currentWord}
             />
           </div>
           
@@ -217,11 +289,33 @@ const Board = ({
             currentPlayer={currentPlayer}
             gameOver={gameOver}
             onClearWord={onClearWord}
+            playerScore={playerScore}
+            aiScore={aiScore}
           />
         </div>
       </div>
     </div>
   );
+};
+
+Board.propTypes = {
+  board: PropTypes.arrayOf(PropTypes.arrayOf(PropTypes.string)).isRequired,
+  onCellClick: PropTypes.func.isRequired,
+  selectedCell: PropTypes.object,
+  placedTiles: PropTypes.array,
+  tiles: PropTypes.array,
+  onTileClick: PropTypes.func.isRequired,
+  selectedTile: PropTypes.object,
+  currentWord: PropTypes.array,
+  direction: PropTypes.string.isRequired,
+  setDirection: PropTypes.func.isRequired,
+  onMakeMove: PropTypes.func.isRequired,
+  onNewGame: PropTypes.func.isRequired,
+  currentPlayer: PropTypes.string.isRequired,
+  gameOver: PropTypes.bool.isRequired,
+  onClearWord: PropTypes.func.isRequired,
+  playerScore: PropTypes.number.isRequired,
+  aiScore: PropTypes.number.isRequired
 };
 
 export default Board;

@@ -281,13 +281,6 @@ body {
   margin-bottom: 10px;
 }
 
-.error-message {
-  background-color: var(--crimson);
-  color: white;
-  padding: 10px;
-  border-radius: 5px;
-  margin-bottom: 15px;
-}
 
 /* For the board cells */
 .board-cell {
@@ -342,12 +335,42 @@ body {
   text-align: center;
 }
 
+
+
+
 .error-message {
   background-color: #ffebee;
   color: #d32f2f;
-  padding: 10px;
-  margin: 10px 0;
+  padding: 10px 15px;
   border-radius: 4px;
-  text-align: center;
+  margin-bottom: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
+.dismiss-error {
+  background: none;
+  border: none;
+  color: #d32f2f;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0 5px;
+}
+
+@media (max-width: 768px) {
+  .game-container {
+    padding: 10px;
+  }
+  
+  .board-cell {
+    width: 30px;
+    height: 30px;
+  }
+  
+  .rack-tile {
+    width: 28px;
+    height: 38px;
+    margin: 0 2px;
+  }
+}

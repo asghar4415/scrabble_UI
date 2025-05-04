@@ -1,21 +1,38 @@
-/* App.css */
+/* App.css - Global Styles & Layout */
 :root {
-  --crimson: #9D1F15;
-  --pale-yellow: #FBF7BA;
-  --dark-wood: #5E3C23;
-  --tile-light: #F8F5E4;
-  --tile-dark: #E6D9B8;
+  --crimson: #9D1F15;      /* Primary accent color */
+  --pale-yellow: #FBF7BA;  /* Tile background */
+  --dark-wood: #5E3C23;    /* Wood texture / dark theme element */
+  --light-wood: #8B5E3C;   /* Lighter wood accents */
+  --tile-light: #F8F5E4;   /* Light cell background */
+  --tile-dark: #E6D9B8;    /* Darker cell background / board background */
+  --text-light: #f8f8f8;   /* Light text (on dark backgrounds) */
+  --text-dark: #333333;    /* Dark text (on light backgrounds) */
+  --highlight: #cce7ff;    /* Selection highlight */
+  --error-bg: #ffebee;     /* Background for error messages */
+  --error-text: #c62828;   /* Text color for error messages */
+  --info-bg: #e0f7fa;      /* Background for info messages */
+  --info-text: #006064;    /* Text color for info messages */
+  --disabled-bg: #cccccc;
+  --disabled-text: #666666;
 }
 
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  /* Consider a specific Scrabble-like font if available */
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
+html {
+  font-size: 16px; /* Base font size */
+}
+
 body {
-  background-color: #f5f5f5;
+  background-color: #e8e4d8; /* Overall page background - light tan */
+  color: var(--text-dark);
+  line-height: 1.5;
 }
 
 .app {
@@ -24,69 +41,78 @@ body {
   flex-direction: column;
 }
 
+/* ====================
+   Welcome Screen Styles
+   ==================== */
+
 .welcome-screen {
   display: flex;
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background: url('./assets/bg.png');
+  /* Consider a subtle background texture */
+  background: linear-gradient(rgba(232, 228, 216, 0.8), rgba(232, 228, 216, 0.8)), url('./assets/bg.png'); /* Overlay color on background */
   background-size: cover;
-  background-repeat: no-repeat;
+  background-position: center;
   padding: 2rem;
 }
 
 .scrabble-board-frame {
   background: var(--dark-wood);
-  padding: 30px;
+  padding: clamp(15px, 4vw, 30px); /* Responsive padding */
   border-radius: 20px;
-  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
-  border: 12px solid #3A2516;
-  position: relative;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), inset 0 0 15px rgba(0,0,0,0.3);
+  border: 10px solid #3A2516; /* Darker wood border */
   max-width: 800px;
   width: 100%;
 }
 
 .welcome-content {
   background-color: var(--tile-light);
-  padding: 3rem 2rem;
+  padding: clamp(1.5rem, 5vw, 3rem) clamp(1rem, 4vw, 2rem); /* Responsive padding */
   border-radius: 10px;
   text-align: center;
-  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.1);
+  box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.1);
 }
 
+/* Scrabble Title Tiles */
 .scrabble-title {
   display: flex;
   justify-content: center;
+  flex-wrap: wrap; /* Allow wrapping */
   margin-bottom: 1.5rem;
   gap: 5px;
 }
 
 .scrabble-title span {
-  display: inline-block;
-  width: 50px;
-  height: 60px;
-  background: var(--pale-yellow);
-  color: var(--crimson);
-  font-size: 2rem;
-  font-weight: bold;
-  display: flex;
+  display: inline-flex; /* Use inline-flex */
   align-items: center;
   justify-content: center;
+  width: clamp(35px, 8vw, 50px); /* Responsive width */
+  height: clamp(45px, 10vw, 60px); /* Responsive height */
+  background: var(--pale-yellow);
+  color: var(--crimson);
+  font-size: clamp(1.5rem, 5vw, 2rem); /* Responsive font size */
+  font-weight: bold;
   border-radius: 5px;
-  box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
-  margin: 0 2px;
+  box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2), inset 1px 1px 2px rgba(255,255,255,0.5);
+  margin: 2px;
+  position: relative; /* For potential score */
 }
+/* Add score-like element to title tiles? Optional */
+/* .scrabble-title span::after { ... } */
 
 .tagline {
-  color: var(--crimson);
-  font-size: 1.3rem;
+  color: var(--dark-wood);
+  font-size: clamp(1rem, 3vw, 1.3rem);
   margin-bottom: 2rem;
   font-style: italic;
 }
 
+/* Game Mode Options */
 .game-options {
   display: flex;
-  gap: 2rem;
+  gap: clamp(1rem, 4vw, 2rem); /* Responsive gap */
   justify-content: center;
   flex-wrap: wrap;
   margin: 2rem 0;
@@ -94,56 +120,59 @@ body {
 
 .game-option-btn {
   background-color: var(--tile-dark);
-  border: none;
+  border: 2px solid var(--light-wood);
   border-radius: 10px;
   padding: 1.5rem;
-  width: 300px;
+  width: 100%; /* Default full width */
+  max-width: 320px; /* Max width per button */
   cursor: pointer;
   transition: all 0.3s ease;
-  color: var(--crimson);
-  text-align: left;
+  color: var(--dark-wood);
   display: flex;
   align-items: center;
-  position: relative;
-  overflow: hidden;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  text-align: left;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
 
 .game-option-btn:hover {
   transform: translateY(-5px);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+  border-color: var(--dark-wood);
 }
 
 .game-option-btn h2 {
-  font-size: 1.5rem;
+  font-size: clamp(1.2rem, 4vw, 1.5rem);
   margin-bottom: 0.5rem;
+  color: var(--crimson);
 }
 
 .game-option-btn p {
-  font-size: 0.9rem;
+  font-size: clamp(0.8rem, 2.5vw, 0.9rem);
   opacity: 0.9;
 }
 
-.tile-letter {
+/* Tile visual within the option button */
+.game-option-btn .tile-letter {
   background: var(--pale-yellow);
   color: var(--crimson);
-  width: 40px;
-  height: 40px;
+  width: 45px; /* Fixed size */
+  height: 45px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.5rem;
+  font-size: 1.8rem;
   font-weight: bold;
   border-radius: 4px;
   margin-right: 1rem;
   flex-shrink: 0;
   box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+  position: relative;
 }
-
-.tile-value {
+/* Score visual on the tile */
+.game-option-btn .tile-value {
   position: absolute;
-  bottom: 5px;
-  right: 5px;
+  bottom: 3px;
+  right: 3px;
   font-size: 0.7rem;
   color: var(--crimson);
   font-weight: bold;
@@ -151,226 +180,250 @@ body {
 
 .option-text {
   flex-grow: 1;
-  text-align: left;
 }
 
+/* Quick Rules Section */
 .scrabble-rules {
-  background-color: rgba(251, 247, 186, 0.5);
+  background-color: rgba(251, 247, 186, 0.3); /* More transparent */
   padding: 1.5rem;
   border-radius: 8px;
   margin-top: 2rem;
   text-align: left;
-  border: 1px dashed var(--crimson);
+  border: 1px dashed var(--light-wood);
 }
 
 .scrabble-rules h3 {
-  color: var(--crimson);
+  color: var(--dark-wood);
   margin-bottom: 1rem;
   text-align: center;
+  font-size: 1.2rem;
 }
 
 .scrabble-rules ol {
   padding-left: 1.5rem;
+  list-style: decimal;
 }
 
 .scrabble-rules li {
-  margin-bottom: 0.5rem;
-  color: #333;
+  margin-bottom: 0.6rem;
+  color: var(--text-dark);
+  font-size: 0.9rem;
 }
 
+/* Coming Soon / Placeholder Page */
 .coming-soon {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: var(--pale-yellow);
-  color: var(--crimson);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 80vh; /* Take up most viewport height */
   padding: 2rem;
-  border-radius: 10px;
-  font-size: 1.5rem;
-  font-weight: bold;
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
-  border: 3px solid var(--crimson);
+  text-align: center;
+}
+/* Use the same frame style */
+.coming-soon .scrabble-board-frame {
+    max-width: 600px;
+}
+.coming-soon h2 {
+  color: var(--crimson);
+  margin-bottom: 1rem;
+}
+.coming-soon p {
+  color: var(--dark-wood);
+  margin-bottom: 1.5rem;
 }
 
-@media (max-width: 768px) {
-  .scrabble-board-frame {
-    padding: 15px;
-  }
-  
-  .welcome-content {
-    padding: 1.5rem 1rem;
-  }
-  
-  .game-options {
-    flex-direction: column;
-    align-items: center;
-  }
-  
-  .game-option-btn {
-    width: 100%;
-  }
-  
-  .scrabble-title span {
-    width: 35px;
-    height: 45px;
-    font-size: 1.5rem;
-  }
-}
-
+/* ====================
+   Game Screen Styles
+   ==================== */
 
 .game-screen {
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start; /* Align top */
   min-height: 100vh;
-  padding: 2rem;
+  padding: 1.5rem; /* Consistent padding */
+  background-color: #e8e4d8; /* Match body background */
 }
 
 .game-container {
-  max-width: 1000px;
+  width: 100%;
+  max-width: 1100px; /* Match board container max-width */
   margin: 0 auto;
-  padding: 10px;
+  padding: 10px; /* Minimal padding */
 }
 
+/* Game Header (Optional - can be integrated into Board component) */
 .game-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
-  padding-bottom: 10px;
-  border-bottom: 2px solid var(--crimson);
+  padding-bottom: 15px;
+  border-bottom: 3px solid var(--dark-wood);
 }
 
 .game-title {
   color: var(--crimson);
-  font-size: 2.5rem;
+  font-size: clamp(1.8rem, 5vw, 2.5rem);
   margin: 0;
-}
-
-.game-main {
-  display: flex;
-
-  gap: 20px;
-}
-
-.game-board-wrapper {
-  flex: 2;
-  background: var(--dark-wood);
-  padding: 10px;
-  border-radius: 10px;
-  box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-}
-
-.game-controls-panel {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.player-rack-section {
-  background:  var(--tile-light);
-  padding: 15px;
-  border-radius: 8px;
-}
-
-.player-rack-section h3 {
-  color: var(--crimson);
-  margin-top: 0;
-  margin-bottom: 10px;
-}
-
-
-/* For the board cells */
-.board-cell {
-  width: 40px;
-  height: 40px;
-  background: var(--tile-light);
-  border: 1px solid #ddd;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   font-weight: bold;
 }
 
-/* For the player rack tiles */
-.rack-tile {
-  background: var(--pale-yellow);
-  color: var(--crimson);
-  width: 35px;
-  height: 45px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 3px;
-  font-weight: bold;
-  border-radius: 3px;
-  box-shadow: 1px 1px 3px rgba(0,0,0,0.2);
-  cursor: pointer;
-}
-
-@media (max-width: 768px) {
-  .game-main {
-    flex-direction: column;
-  }
-  
-  .game-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-  }
-}
-  
-.loading-screen
-{
+/* Loading / Message Styles */
+.loading-screen {
   display: flex;
   justify-content: center;
   align-items: center;
   min-height: 100vh;
   background-color: var(--dark-wood);
   color: var(--pale-yellow);
-  font-size: 2rem;
+  font-size: clamp(1.5rem, 5vw, 2rem);
   font-weight: bold;
   text-align: center;
+  padding: 2rem;
 }
 
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.6); /* Semi-transparent white */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000; /* Ensure it's on top */
+    /* Add spinner or text */
+    color: var(--crimson);
+    font-size: 1.5em;
+    font-weight: bold;
+}
+/* Basic spinner */
+/* .loading-overlay::after {
+    content: '';
+    display: block;
+    width: 40px;
+    height: 40px;
+    border: 4px solid var(--crimson);
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } } */
 
 
-
-.error-message {
-  background-color: #ffebee;
-  color: #d32f2f;
-  padding: 10px 15px;
-  border-radius: 4px;
-  margin-bottom: 15px;
+/* Error and Info Messages (Global styling) */
+.error-message, .info-message {
+  padding: 12px 18px;
+  border-radius: 6px;
+  margin: 0 auto 15px auto; /* Center messages */
+  max-width: 95%; /* Limit width */
   display: flex;
   justify-content: space-between;
   align-items: center;
+  font-size: 0.95rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  border-left: 5px solid; /* Add colored border */
 }
 
-.dismiss-error {
+.error-message {
+  background-color: var(--error-bg);
+  color: var(--error-text);
+  border-left-color: var(--error-text);
+}
+
+.info-message {
+  background-color: var(--info-bg);
+  color: var(--info-text);
+   border-left-color: var(--info-text);
+}
+
+.dismiss-error, .dismiss-info {
   background: none;
   border: none;
-  color: #d32f2f;
-  font-size: 1.2rem;
+  font-size: 1.6rem; /* Larger close button */
+  font-weight: bold;
   cursor: pointer;
-  padding: 0 5px;
+  padding: 0 0 0 15px; /* Padding on left */
+  line-height: 1;
 }
+.dismiss-error { color: var(--error-text); }
+.dismiss-info { color: var(--info-text); }
+
+
+/* ====================
+   Media Queries
+   ==================== */
 
 @media (max-width: 768px) {
-  .game-container {
-    padding: 10px;
+  html {
+      font-size: 15px; /* Slightly smaller base font on mobile */
   }
-  
-  .board-cell {
-    width: 30px;
-    height: 30px;
+  .welcome-screen {
+      padding: 1rem;
   }
-  
-  .rack-tile {
-    width: 28px;
-    height: 38px;
-    margin: 0 2px;
+  .scrabble-board-frame {
+      padding: 15px;
+      border-width: 8px;
   }
+  .game-options {
+      flex-direction: column;
+      align-items: center;
+  }
+  .game-option-btn {
+      max-width: none; /* Allow full width */
+      width: 95%;
+  }
+
+  /* Game Screen Adjustments */
+   .game-screen {
+       padding: 0.5rem;
+   }
+   .game-container {
+       padding: 5px;
+   }
+   /* Board component itself handles internal responsive via boardstyles.css */
+}
+
+@media (max-width: 480px) {
+   html {
+       font-size: 14px;
+   }
+   .scrabble-board-frame {
+       padding: 10px;
+       border-width: 6px;
+   }
+    .welcome-content {
+        padding: 1rem 0.8rem;
+    }
+   .scrabble-title span {
+       width: 30px;
+       height: 40px;
+       font-size: 1.3rem;
+   }
+    .tagline {
+        font-size: 0.9rem;
+    }
+    .game-option-btn {
+        padding: 1rem;
+    }
+    .game-option-btn h2 {
+        font-size: 1.1rem;
+    }
+     .game-option-btn p {
+         font-size: 0.75rem;
+     }
+     .scrabble-rules {
+         padding: 1rem;
+     }
+     .scrabble-rules li {
+         font-size: 0.8rem;
+     }
+
+    /* Game Screen Adjustments */
+    .error-message, .info-message {
+        font-size: 0.9rem;
+        padding: 10px 12px;
+    }
 }

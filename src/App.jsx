@@ -4,7 +4,8 @@ import Board from './components/board';
 import './App.css';
 
 // Define the base URL for the backend API. Ensure it matches your backend setup.
-const API_BASE_URL = 'http://127.0.0.1:8000';
+const API_BASE_URL = 'https://scrabble-backend-dzn8.onrender.com';
+
 
 // Create a React context to hold the game state and actions.
 const GameContext = createContext(null);

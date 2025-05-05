@@ -633,3 +633,97 @@
   }
 }
 
+
+/* ====================
+ Objective Display
+ ==================== */
+
+ .objective-display {
+  background: #fdf5e6; /* Very light beige/cream */
+  padding: 10px 15px;
+  border-radius: 6px;
+  border: 1px solid var(--board-bg);
+  margin-top: 5px; /* Add some space above */
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.objective-title {
+  margin: 0 0 5px 0;
+  font-size: 1rem;
+  color: var(--wood);
+  font-weight: 600;
+  text-align: center;
+}
+
+.objective-desc {
+  font-size: 0.9rem;
+  color: var(--text-dark);
+  margin-bottom: 5px;
+  text-align: center;
+  line-height: 1.3;
+}
+
+.objective-status {
+  font-size: 0.85rem;
+  font-weight: bold;
+  text-align: center;
+  margin-top: 5px;
+}
+
+.objective-status.in-progress {
+  color: #b8860b; /* Dark Goldenrod */
+}
+
+.objective-status.completed {
+  color: #228b22; /* Forest Green */
+}
+
+/* Adjust sidebar gap if needed */
+.sidebar-area {
+  gap: 18px; /* Increase gap slightly if objective feels cramped */
+}
+
+/* ====================
+ AI Thinking Overlay & Disabled Styles
+ ==================== */
+
+ .ai-thinking-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.8); /* Semi-transparent white overlay */
+  display: flex;
+  flex-direction: column; /* Stack text */
+  justify-content: center;
+  align-items: center;
+  z-index: 50; /* Ensure it's above board/sidebar but below modals maybe */
+  border-radius: 8px; /* Match container */
+  text-align: center;
+  pointer-events: auto; /* Allow overlay to capture events if needed, though controls are disabled */
+}
+
+.ai-thinking-overlay p {
+  color: var(--dark-wood);
+  font-size: 1.4em;
+  font-weight: bold;
+  margin-bottom: 5px;
+  padding: 0 10px;
+}
+.ai-thinking-overlay span {
+  color: var(--accent);
+  font-size: 1em;
+  font-weight: 500;
+}
+
+
+.disabled-interaction {
+  cursor: not-allowed !important; /* Override cursor */
+  opacity: 0.7; /* Slightly fade disabled elements */
+}
+
+
+.player-rack .tile.placed-on-board.disabled-interaction {
+    opacity: 0.6; /* Keep placed style */
+}

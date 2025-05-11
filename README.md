@@ -84,5 +84,5 @@ Follow the setup instructions in the backend repository's README to get the serv
 
 ## Demo Video
 
-🎬 **Watch a demo of the game in action:** [Link to your Demo Video (e.g., YouTube, Loom, Google Drive)]
+🎬 **Watch a demo of the game:** []
 

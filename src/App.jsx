@@ -11,28 +11,26 @@ import {
   Routes,
   useNavigate,
 } from "react-router-dom";
-import Board from "./components/board"; // Ensure this path is correct
+import Board from "./components/board";
 import "./App.css";
 
-// const API_BASE_URL = 'https://scrabble-backend-dzn8.onrender.com';
-const API_BASE_URL = "http://127.0.0.1:8000"; // For local development
+const API_BASE_URL = "http://127.0.0.1:8000";
 
 const GameContext = createContext(null);
-
-const useGame = () => {
+export const useGame = () => {
   const context = useContext(GameContext);
-  if (!context) {
-    throw new Error("useGame must be used within a GameProvider");
-  }
+  if (!context) throw new Error("useGame must be used within a GameProvider");
   return context;
 };
 
 const GameProvider = ({ children }) => {
-  const [gameState, setGameState] = useState(null); // Initialize gameState to null
-  const [loading, setLoading] = useState(true); // For initial game load
+  const [gameState, setGameState] = useState(null);
+  const [initialLoading, setInitialLoading] = useState(true); // For the very first time a game mode page is loaded
+  const [loading, setLoading] = useState(false); // For subsequent API calls within a game
   const [isAiThinking, setIsAiThinking] = useState(false);
   const [error, setError] = useState(null);
   const [message, setMessage] = useState("");
+
   const [selectedTile, setSelectedTile] = useState(null);
   const [selectedCell, setSelectedCell] = useState(null);
   const [direction, setDirection] = useState("horizontal");
@@ -43,89 +41,146 @@ const GameProvider = ({ children }) => {
     setMessage("");
   }, []);
 
-  const initGame = useCallback(async () => {
-    console.log("Initializing game...");
-    setLoading(true);
-    setIsAiThinking(false); // Important: Reset AI thinking on new game
-    clearNotifications();
+  const resetHumanTurnState = useCallback(() => {
     setPlacedTiles([]);
     setSelectedTile(null);
     setSelectedCell(null);
-    setDirection("horizontal");
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/game/start`);
-      const state = await response.json();
-      if (!response.ok) {
-        throw new Error(
-          state.detail || `Failed to start game (HTTP ${response.status})`
-        );
-      }
-      setGameState({
-        board:
-          state.board ||
-          Array(15)
-            .fill(null)
-            .map(() => Array(15).fill(null)),
-        scores: state.scores || { human: 0, ai: 0 },
-        current_player: state.current_player || "human",
-        player_rack: state.player_rack || [],
-        game_over: state.game_over || false,
-        first_move: state.first_move === undefined ? true : state.first_move,
-        tiles_in_bag: state.tiles_in_bag || 0,
-        human_objective: state.human_objective || null,
-      });
-      setMessage(state.message || "Game started! Your turn.");
-      console.log("Game initialized:", state);
-    } catch (err) {
-      console.error("Init Game Error:", err);
-      setError(err.message || "Could not connect to server or start game.");
-      setGameState(null); // Set to null on error
-    } finally {
-      setLoading(false);
-    }
-  }, [clearNotifications]);
-
-  const resetTurnState = useCallback(() => {
-    setPlacedTiles([]);
-    setSelectedTile(null);
-    setSelectedCell(null);
+    // setDirection("horizontal"); // Keep direction or reset as per game design
   }, []);
 
-  const startNewGame = useCallback(async () => {
-    await initGame();
-  }, [initGame]);
+  const handleApiResponse = useCallback(
+    (apiResponseData, successMessagePrefix = "") => {
+      if (!apiResponseData || typeof apiResponseData !== "object") {
+        const errMsg = "Received invalid data from server.";
+        setError(errMsg);
+        setGameState(null);
+        console.error(errMsg, apiResponseData);
+        return false;
+      }
+      const defaults = {
+        board: Array(15)
+          .fill(null)
+          .map(() => Array(15).fill(null)),
+        scores: {},
+        player_display_names: {},
+        player_racks_display: {},
+        player_objectives: {},
+        current_player_key: "",
+        current_player_display_name: "N/A",
+        game_over: false,
+        first_move: true,
+        tiles_in_bag: 0,
+        game_mode: "",
+        message: "",
+        player_keys: [], // Ensure player_keys has a default
+      };
+      const newState = { ...defaults, ...apiResponseData };
+      setGameState(newState);
 
-  const handleStateUpdate = useCallback(
-    (newState) => {
-      setGameState(newState); // newState should contain all necessary fields like player_rack
+      let displayMessage = newState.message || "";
+      if (
+        successMessagePrefix &&
+        !displayMessage.toLowerCase().includes("invalid move")
+      ) {
+        displayMessage = `${successMessagePrefix}${displayMessage}`;
+      }
       if (newState.message?.toLowerCase().includes("invalid move")) {
-        setError(newState.message);
+        setError(displayMessage);
         setMessage("");
       } else {
-        setMessage(newState.message || "");
+        setMessage(displayMessage);
         setError(null);
       }
-      console.log("Game state updated:", newState);
-      if (newState.current_player === "human" || newState.game_over) {
-        resetTurnState();
+
+      if (
+        (newState.game_mode === "human_vs_ai" &&
+          newState.current_player_key === "human") ||
+        newState.game_over
+      ) {
+        resetHumanTurnState();
       }
       if (
         newState.game_over &&
-        !newState.message?.toLowerCase().includes("game over")
+        !displayMessage.toLowerCase().includes("game over")
       ) {
+        let finalScoreMsg = "GAME OVER! Scores: ";
+        if (newState.player_display_names && newState.scores) {
+          finalScoreMsg += Object.entries(newState.player_display_names)
+            .map(([key, name]) => `${name}: ${newState.scores[key] || 0}`)
+            .join(", ");
+        }
         setMessage(
-          (prev) =>
-            (prev ? prev + " || " : "") +
-            `GAME OVER! Final Score -> You: ${newState.scores.human}, AI: ${newState.scores.ai}`
+          (prev) => (prev ? prev + " || " : "") + finalScoreMsg.trim()
         );
       }
+      return true;
     },
-    [resetTurnState]
+    [resetHumanTurnState]
   );
 
+  const initGameMode = useCallback(
+    async (mode, names = {}) => {
+      console.log(`Initializing ${mode} game...`, names);
+      setInitialLoading(true); // For initial page load of a game mode
+      setIsAiThinking(false);
+      clearNotifications();
+      resetHumanTurnState();
+      setGameState(null);
+      let url = "";
+      let options = {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      };
+      let successPrefix = "";
+
+      if (mode === "human_vs_ai") {
+        url = `${API_BASE_URL}/api/game/start/human_vs_ai`;
+        successPrefix = "Human vs AI Game Started. ";
+      } else if (mode === "ai_vs_ai") {
+        url = `${API_BASE_URL}/api/game/start/ai_vs_ai`;
+        options.body = JSON.stringify({
+          ai1_name: names.ai1Name,
+          ai2_name: names.ai2Name,
+        });
+        successPrefix = `AI Battle: ${names.ai1Name} vs ${names.ai2Name} Started. `;
+      } else {
+        setError("Invalid game mode selected.");
+        setInitialLoading(false);
+        return null;
+      }
+
+      try {
+        const response = await fetch(url, options);
+        if (!response.ok) {
+          const errorData = await response
+            .json()
+            .catch(() => ({ detail: `HTTP error ${response.status}` }));
+          throw new Error(errorData.detail || `Failed to start ${mode} game`);
+        }
+        const state = await response.json();
+        handleApiResponse(state, successPrefix); // This will setGameState
+        return state; // Return state for AIvsAI to start loop
+      } catch (err) {
+        console.error(`Init ${mode} Error:`, err);
+        setError(err.message || `Could not start ${mode} game.`);
+        setGameState(null); // Ensure gameState is null on error
+        return null;
+      } finally {
+        setInitialLoading(false); // Initial loading done, regardless of success
+      }
+    },
+    [clearNotifications, resetHumanTurnState, handleApiResponse]
+  );
+
+  // Define checkFirstMoveCenter (dependent on gameState)
   const checkFirstMoveCenter = useCallback(
     (currentPlacedTiles, currentDirection) => {
-      if (!gameState?.first_move || currentPlacedTiles.length === 0)
+      if (
+        !gameState ||
+        !gameState.first_move ||
+        !currentPlacedTiles ||
+        currentPlacedTiles.length === 0
+      )
         return true;
       const center = 7;
       const touchesCenter = currentPlacedTiles.some(
@@ -141,7 +196,6 @@ const GameProvider = ({ children }) => {
           .sort((a, b) => a - b);
         return cols[0] <= center && cols[cols.length - 1] >= center;
       } else {
-        // Vertical
         const col = firstTilePos.col;
         if (col !== center) return false;
         const rows = currentPlacedTiles
@@ -150,11 +204,17 @@ const GameProvider = ({ children }) => {
         return rows[0] <= center && rows[rows.length - 1] >= center;
       }
     },
-    [gameState?.first_move]
+    [gameState]
   );
 
   const getWordInfoForAPI = useCallback(() => {
-    if (!placedTiles || placedTiles.length === 0) return null;
+    if (
+      !gameState ||
+      !gameState.board ||
+      !placedTiles ||
+      placedTiles.length === 0
+    )
+      return null;
     const axis = direction === "horizontal" ? "col" : "row";
     const fixedAxis = direction === "horizontal" ? "row" : "col";
     const sortedTiles = [...placedTiles].sort(
@@ -204,119 +264,155 @@ const GameProvider = ({ children }) => {
       } else if (boardLetter) {
         word += boardLetter;
       } else {
-        console.error("Error: Gap detected in word construction!", {
-          r,
-          c,
-          placedLetter,
-          boardLetter,
-        });
-        setError("Internal Error: Gap detected in word placement.");
+        setError("Error: Gap in word construction.");
         return null;
       }
     }
-    const startRow = direction === "horizontal" ? fixedValue : startPos;
-    const startCol = direction === "horizontal" ? startPos : fixedValue;
-    console.log("Constructed for API:", {
+    return {
       word,
-      row: startRow,
-      col: startCol,
+      row: direction === "horizontal" ? fixedValue : startPos,
+      col: direction === "horizontal" ? startPos : fixedValue,
       direction,
-    });
-    return { word, row: startRow, col: startCol, direction };
-  }, [placedTiles, direction, gameState?.board, setError]); // Added setError dependency
-  const makePlayerMove = useCallback(async () => {
-    if (isAiThinking) return; // Prevent move if AI is already processing
+    };
+  }, [placedTiles, direction, gameState, setError]);
+
+  const makeHumanPlayerMove = useCallback(async () => {
+    if (
+      isAiThinking ||
+      !gameState ||
+      gameState.game_mode !== "human_vs_ai" ||
+      gameState.current_player_key !== "human"
+    )
+      return;
     clearNotifications();
     if (placedTiles.length === 0) {
-      setError("Place at least one tile to make a move.");
+      setError("Place at least one tile.");
       return;
     }
-    if (
-      gameState?.first_move &&
-      !checkFirstMoveCenter(placedTiles, direction)
-    ) {
-      setError("First move must cross the center square (H8).");
+    if (gameState.first_move && !checkFirstMoveCenter(placedTiles, direction)) {
+      setError("First move must cross center.");
       return;
     }
     const wordInfo = getWordInfoForAPI();
-    if (!wordInfo) {
-      return;
-    }
-
+    if (!wordInfo) return;
     setIsAiThinking(true);
+    setLoading(true);
     try {
       const response = await fetch(`${API_BASE_URL}/api/game/move`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(wordInfo),
       });
-      const newState = await response.json();
       if (!response.ok) {
-        throw new Error(
-          newState.detail || `Move rejected by server (HTTP ${response.status})`
-        );
+        const errData = await response
+          .json()
+          .catch(() => ({ detail: "Move rejected" }));
+        throw new Error(errData.detail);
       }
-      handleStateUpdate(newState);
+      const newState = await response.json();
+      handleApiResponse(newState);
     } catch (err) {
-      console.error("Make Move API Error:", err);
-      setError(err.message || "Failed to communicate move to server.");
+      setError(err.message);
+      console.error("Human Move Error:", err);
     } finally {
       setIsAiThinking(false);
+      setLoading(false);
     }
   }, [
-    placedTiles,
+    isAiThinking,
     gameState,
+    placedTiles,
+    getWordInfoForAPI,
+    handleApiResponse,
+    clearNotifications,
     direction,
     checkFirstMoveCenter,
-    getWordInfoForAPI,
-    handleStateUpdate,
-    clearNotifications,
-    setError,
-    isAiThinking,
   ]);
 
-  const passTurn = useCallback(async () => {
-    if (isAiThinking) return; // Prevent pass if AI is already processing
+  const humanPassTurn = useCallback(async () => {
+    if (
+      isAiThinking ||
+      !gameState ||
+      gameState.game_mode !== "human_vs_ai" ||
+      gameState.current_player_key !== "human"
+    )
+      return;
     clearNotifications();
-    if (placedTiles.length > 0) {
-      if (
-        !window.confirm(
-          "You have tiles placed on the board. Passing will clear them. Continue?"
-        )
-      ) {
-        return;
-      }
-    }
+    if (
+      placedTiles.length > 0 &&
+      !window.confirm("Clear placed tiles and pass?")
+    )
+      return;
     setIsAiThinking(true);
-    resetTurnState();
+    setLoading(true);
+    resetHumanTurnState();
     try {
       const response = await fetch(`${API_BASE_URL}/api/game/pass`, {
         method: "POST",
       });
-      const newState = await response.json();
       if (!response.ok) {
-        throw new Error(
-          newState.detail || `Failed to pass turn (HTTP ${response.status})`
-        );
+        const errData = await response
+          .json()
+          .catch(() => ({ detail: "Pass failed" }));
+        throw new Error(errData.detail);
       }
-      handleStateUpdate(newState);
+      const newState = await response.json();
+      handleApiResponse(newState);
     } catch (err) {
-      console.error("Pass Turn API Error:", err);
-      setError(err.message || "Failed to communicate pass to server.");
+      setError(err.message);
+      console.error("Human Pass Error:", err);
     } finally {
       setIsAiThinking(false);
+      setLoading(false);
     }
   }, [
-    clearNotifications,
-    handleStateUpdate,
-    placedTiles.length,
-    resetTurnState,
-    setError,
     isAiThinking,
+    gameState,
+    placedTiles,
+    handleApiResponse,
+    clearNotifications,
+    resetHumanTurnState,
   ]);
 
+  const triggerNextAiMove = useCallback(async () => {
+    if (
+      isAiThinking ||
+      !gameState ||
+      gameState.game_mode !== "ai_vs_ai" ||
+      gameState.game_over
+    )
+      return null;
+    setIsAiThinking(true);
+    setLoading(true);
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/api/game/ai_vs_ai/next_move`,
+        { method: "POST" }
+      );
+      if (!response.ok) {
+        const errData = await response
+          .json()
+          .catch(() => ({ detail: "Next AI move failed" }));
+        throw new Error(errData.detail);
+      }
+      const newState = await response.json();
+      handleApiResponse(newState);
+      return newState;
+    } catch (err) {
+      setError(err.message);
+      console.error("Next AI Move Error:", err);
+      return null;
+    } finally {
+      setIsAiThinking(false);
+      setLoading(false);
+    }
+  }, [isAiThinking, gameState, handleApiResponse]);
+
+  // Define validatePlacement (dependent on gameState, placedTiles, direction, setError)
   const validatePlacement = useCallback(
     (row, col) => {
+      if (!gameState || !gameState.board)
+        return { valid: false, message: "Board not ready." };
       if (placedTiles.length === 0)
         return { valid: true, newDirection: direction };
       const firstTilePos = placedTiles[0].position;
@@ -327,12 +423,10 @@ const GameProvider = ({ children }) => {
         } else if (col === firstTilePos.col && row !== firstTilePos.row) {
           currentDirection = "vertical";
         } else if (row === firstTilePos.row && col === firstTilePos.col) {
-          return { valid: false };
+          return { valid: false, message: "Cannot place on same tile." };
         } else {
-          setError(
-            "Tiles must be placed in a straight line (horizontally or vertically)."
-          );
-          return { valid: false };
+          setError("Tiles must be in a straight line.");
+          return { valid: false, message: "Tiles must be in a straight line." };
         }
       }
       const allTilesIncludingNew = [...placedTiles, { position: { row, col } }];
@@ -342,64 +436,49 @@ const GameProvider = ({ children }) => {
       if (
         allTilesIncludingNew.some((t) => t.position[fixedAxis] !== fixedValue)
       ) {
-        setError(
-          "Tiles must all be on the same row (horizontal) or column (vertical)."
-        );
-        return { valid: false };
-      }
-      if (row !== fixedValue && currentDirection === "horizontal") {
-        setError("Tiles must be placed on the same row for a horizontal word.");
-        return { valid: false };
-      }
-      if (col !== fixedValue && currentDirection === "vertical") {
-        setError(
-          "Tiles must be placed on the same column for a vertical word."
-        );
-        return { valid: false };
+        setError("Tiles must be on the same line.");
+        return { valid: false, message: "Tiles must be on the same line." };
       }
       const positions = allTilesIncludingNew.map((t) => t.position[axis]);
       positions.sort((a, b) => a - b);
       for (let i = 0; i < positions.length - 1; i++) {
         if (positions[i + 1] - positions[i] > 1) {
-          let gapFilledByBoard = true;
+          let gapFilled = true;
           for (let p = positions[i] + 1; p < positions[i + 1]; p++) {
             const rCheck = currentDirection === "horizontal" ? fixedValue : p;
             const cCheck = currentDirection === "horizontal" ? p : fixedValue;
             if (!gameState.board[rCheck]?.[cCheck]) {
-              gapFilledByBoard = false;
+              gapFilled = false;
               break;
             }
           }
-          if (!gapFilledByBoard) {
-            setError(
-              "Tiles must be placed adjacent to each other or existing tiles without gaps."
-            );
-            return { valid: false };
+          if (!gapFilled) {
+            setError("No gaps unless filled by existing tiles.");
+            return { valid: false, message: "Gaps not allowed." };
           }
         }
       }
       return { valid: true, newDirection: currentDirection };
     },
-    [placedTiles, direction, gameState?.board, setError]
+    [placedTiles, direction, gameState, setError]
   );
+
   const placeTileOnBoard = useCallback(
     (row, col) => {
       if (
         isAiThinking ||
-        gameState?.current_player !== "human" ||
-        gameState?.game_over
-      ) {
-        // Check isAiThinking here
-        setError("Cannot place tiles now.");
+        !gameState ||
+        gameState.game_mode !== "human_vs_ai" ||
+        gameState.current_player_key !== "human" ||
+        gameState.game_over
+      )
         return;
-      }
       clearNotifications();
       if (!selectedTile) {
         setError("Select a tile from your rack first.");
         return;
       }
-      // Removed redundant gameState checks as they are covered by isAiThinking or higher-level component logic
-      if (gameState?.board[row][col] !== null) {
+      if (gameState.board[row][col] !== null) {
         setError("Cannot place tile on an already occupied square.");
         return;
       }
@@ -412,7 +491,9 @@ const GameProvider = ({ children }) => {
         return;
       }
       const placementValidation = validatePlacement(row, col);
-      if (!placementValidation.valid) {
+      if (!placementValidation || !placementValidation.valid) {
+        if (placementValidation && placementValidation.message && !error)
+          setError(placementValidation.message);
         return;
       }
       if (
@@ -432,25 +513,27 @@ const GameProvider = ({ children }) => {
       setSelectedTile(null);
     },
     [
-      selectedTile,
+      isAiThinking,
       gameState,
+      selectedTile,
       placedTiles,
-      validatePlacement,
       direction,
       clearNotifications,
       setError,
-      isAiThinking,
-    ] // Added isAiThinking
+      validatePlacement,
+    ]
   );
 
   const handleTileClick = useCallback(
     (tile) => {
       if (
         isAiThinking ||
-        gameState?.current_player !== "human" ||
-        gameState?.game_over
+        !gameState ||
+        gameState.game_mode !== "human_vs_ai" ||
+        gameState.current_player_key !== "human" ||
+        gameState.game_over
       )
-        return; // Check isAiThinking here
+        return;
       clearNotifications();
       const { index, isPlaced } = tile;
       if (isPlaced) {
@@ -465,27 +548,29 @@ const GameProvider = ({ children }) => {
       }
     },
     [
-      selectedTile,
+      isAiThinking,
       gameState,
+      selectedTile,
       clearNotifications,
       placedTiles.length,
-      isAiThinking,
-    ] // Added isAiThinking
+    ]
   );
 
   const clearCurrentPlacement = useCallback(() => {
-    if (isAiThinking) return; // Check isAiThinking
+    if (
+      isAiThinking ||
+      !gameState ||
+      gameState.game_mode !== "human_vs_ai" ||
+      gameState.current_player_key !== "human"
+    )
+      return;
     clearNotifications();
-    resetTurnState();
-  }, [clearNotifications, resetTurnState, isAiThinking]); // Added isAiThinking
-
-  useEffect(() => {
-    initGame();
-  }, [initGame]);
+    resetHumanTurnState();
+  }, [isAiThinking, gameState, clearNotifications, resetHumanTurnState]);
 
   const value = {
     gameState,
-    loading,
+    loading: initialLoading,
     isAiThinking,
     error,
     message,
@@ -499,12 +584,13 @@ const GameProvider = ({ children }) => {
     setSelectedTile,
     setSelectedCell,
     setDirection,
-    startNewGame,
-    makePlayerMove,
+    initGameMode, // Use generic initGameMode
+    triggerNextAiMove,
+    makeHumanPlayerMove,
+    humanPassTurn,
     placeTileOnBoard,
     handleTileClick,
     clearCurrentPlacement,
-    passTurn,
   };
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;
@@ -512,37 +598,44 @@ const GameProvider = ({ children }) => {
 
 const HomePage = () => {
   const navigate = useNavigate();
+  // No need for useGame here if init is handled on navigation / page load
   return (
     <div className="welcome-screen">
       <div className="scrabble-board-frame">
         <div className="welcome-content">
           <div className="scrabble-title">
-            {["S", "C", "R", "A", "B", "B", "L", "E"].map((letter, i) => (
-              <span key={i}>{letter}</span>
+            {["S", "C", "R", "A", "B", "B", "L", "E"].map((l, i) => (
+              <span key={i} className={`tile-${i}`}>
+                {l}
+              </span>
             ))}
           </div>
-          <p className="tagline">The Classic Word Game - Advanced AI</p>
+          <p className="tagline">The Classic Word Game</p>
           <div className="game-options">
             <button
               className="game-option-btn vs-ai"
               onClick={() => navigate("/vs-ai")}
               aria-label="Play against the AI"
             >
-              <span className="tile-letter">P</span>
+              <span className="tile-letter">
+                P<span className="tile-value"></span>
+              </span>
               <div className="option-text">
-                {" "}
-                <h2>Play vs AI</h2> <p>Challenge our Advanced Scrabble AI.</p>{" "}
+                <h2>Play vs AI</h2>
+                <p>Challenge our Scrabble AI opponent.</p>
               </div>
             </button>
             <button
               className="game-option-btn ai-vs-ai"
               onClick={() => navigate("/ai-vs-ai")}
-              aria-label="Watch AI vs AI (Coming Soon)"
+              aria-label="Watch AI vs AI"
             >
-              <span className="tile-letter">A</span>
+              <span className="tile-letter">
+                A<span className="tile-value"></span>
+              </span>
               <div className="option-text">
-                {" "}
-                <h2>AI vs AI</h2> <p>Watch the algorithms battle it out!</p>{" "}
+                <h2>AI vs AI</h2>
+                <p>Watch the algorithms battle it out!</p>
               </div>
             </button>
           </div>
@@ -553,9 +646,9 @@ const HomePage = () => {
               <li>First word must cross the center ★ square.</li>
               <li>Connect subsequent words to existing tiles.</li>
               <li>Use premium squares (DL, TL, DW, TW) for bonus points!</li>
+              <li>Blanks (' ') are wildcards (0 points).</li>
               <li>
-                Blanks (' ') are wildcards (0 points). Power Tiles ('D') have
-                special effects!
+                Power Tiles (e.g., 'D' for Double Turn) have special effects!
               </li>
               <li>Complete your secret objective for bonus points!</li>
             </ol>
@@ -565,108 +658,69 @@ const HomePage = () => {
     </div>
   );
 };
+
 const GamePage = () => {
+  // This is for Human vs AI
   const game = useGame();
+  useEffect(() => {
+    if (!game.gameState || game.gameState.game_mode !== "human_vs_ai") {
+      game.initGameMode("human_vs_ai"); // Use generic init
+    }
+  }, [game.initGameMode, game.gameState?.game_mode]);
 
-  const handleCellClick = useCallback(
-    (cell) => {
-      // isAiThinking check is now inside placeTileOnBoard
-      game.clearNotifications();
-      if (game.selectedTile) {
-        game.placeTileOnBoard(cell.row, cell.col);
-      } else {
-        game.setSelectedCell(cell);
-      }
-    },
-    [game] // game includes placeTileOnBoard which has isAiThinking check
-  );
-
-  const handleTileClickWrapper = useCallback(
-    (tile) => {
-      // isAiThinking check is inside game.handleTileClick
-      game.handleTileClick(tile);
-    },
-    [game]
-  );
-
-  const setDirectionWrapper = useCallback(
-    (dir) => {
-      if (game.isAiThinking) return;
-      game.setDirection(dir);
-    },
-    [game]
-  );
-
-  if (game.loading || !game.gameState) {
-    // Show loading screen if initial load or error
+  if (
+    game.loading ||
+    !game.gameState ||
+    game.gameState.game_mode !== "human_vs_ai"
+  ) {
     return (
       <div className="loading-screen">
-        {game.loading
-          ? "Connecting to game..."
-          : "Failed to load game. Please Refresh."}
+        {game.loading ? "Initializing Human vs AI..." : "Loading..."}
       </div>
     );
   }
-
-  const availableRackTiles = game.gameState.player_rack
-    ? game.gameState.player_rack.map((letter, index) => ({
-        letter,
-        index,
-        isPlaced: game.placedTiles.some((t) => t.rackIndex === index),
-      }))
-    : [];
+  const humanPlayerKey =
+    game.gameState.player_keys?.find((key) => key === "human") || "human";
+  const humanRack = game.gameState.player_racks_display?.[humanPlayerKey] || [];
 
   return (
     <div className="game-screen">
       <div className="game-container">
         {game.error && (
           <div className="error-message">
-            {" "}
-            {game.error}{" "}
-            <button
-              className="dismiss-error"
-              onClick={game.clearNotifications}
-              aria-label="Dismiss error"
-            >
+            {game.error}
+            <button className="dismiss-error" onClick={game.clearNotifications}>
               ×
-            </button>{" "}
+            </button>
           </div>
         )}
         {game.message && !game.error && (
           <div className="info-message">
-            {" "}
-            {game.message}{" "}
-            <button
-              className="dismiss-info"
-              onClick={game.clearNotifications}
-              aria-label="Dismiss message"
-            >
+            {game.message}
+            <button className="dismiss-info" onClick={game.clearNotifications}>
               ×
-            </button>{" "}
+            </button>
           </div>
         )}
         <Board
-          board={game.gameState.board}
-          tiles={availableRackTiles}
-          playerScore={game.gameState.scores.human}
-          aiScore={game.gameState.scores.ai}
-          currentPlayer={game.gameState.current_player}
-          gameOver={game.gameState.game_over}
-          tilesInBag={game.gameState.tiles_in_bag}
-          firstMove={game.gameState.first_move}
-          humanObjective={game.gameState.human_objective}
+          {...game.gameState}
+          tiles={humanRack.map((letter, index) => ({
+            letter,
+            index,
+            isPlaced: game.placedTiles.some((t) => t.rackIndex === index),
+          }))}
           isAiThinking={game.isAiThinking}
           selectedCell={game.selectedCell}
           selectedTile={game.selectedTile}
           placedTiles={game.placedTiles}
           direction={game.direction}
-          onCellClick={handleCellClick}
-          onTileClick={handleTileClickWrapper} // Use wrapper
-          setDirection={setDirectionWrapper} // Use wrapper
-          onMakeMove={game.makePlayerMove}
-          onClearPlacement={game.clearCurrentPlacement} // Wrapper for this too
-          onPassTurn={game.passTurn}
-          onNewGame={game.startNewGame}
+          onCellClick={game.placeTileOnBoard}
+          onTileClick={game.handleTileClick}
+          setDirection={game.setDirection}
+          onMakeMove={game.makeHumanPlayerMove}
+          onClearPlacement={game.clearCurrentPlacement}
+          onPassTurn={game.humanPassTurn}
+          onNewGame={() => game.initGameMode("human_vs_ai")} // Use generic init for new game
         />
       </div>
     </div>
@@ -675,22 +729,183 @@ const GamePage = () => {
 
 const AIVsAIPage = () => {
   const navigate = useNavigate();
-  return (
-    <div className="coming-soon">
-      <div className="scrabble-board-frame">
-        <div className="welcome-content">
-          <h2>AI vs AI Mode</h2>
-          <p>This feature is currently under construction.</p>
-          <p>Imagine two tireless intellects locked in lexical combat!</p>
+  const game = useGame();
+  const [ai1Name, setAi1Name] = useState("RoboScrabbler");
+  const [ai2Name, setAi2Name] = useState("WordWizard");
+  const [showNameModal, setShowNameModal] = useState(true);
+  const [gameInProgress, setGameInProgress] = useState(false);
+  const gameLoopTimeoutRef = React.useRef(null);
+
+  const startGame = useCallback(async () => {
+    setShowNameModal(false);
+    setGameInProgress(true);
+    const initialState = await game.initGameMode("ai_vs_ai", {
+      ai1Name,
+      ai2Name,
+    }); // Use generic init
+    if (initialState && !initialState.game_over) {
+      if (gameLoopTimeoutRef.current) clearTimeout(gameLoopTimeoutRef.current);
+      gameLoopTimeoutRef.current = setTimeout(
+        () => runAiGameLoop(initialState),
+        1500
+      );
+    } else if (initialState && initialState.game_over) {
+      setGameInProgress(false);
+    }
+  }, [game, ai1Name, ai2Name]);
+
+  const runAiGameLoop = useCallback(
+    async (currentStateFromApi) => {
+      if (
+        !gameInProgress ||
+        !currentStateFromApi ||
+        currentStateFromApi.game_over
+      ) {
+        setGameInProgress(false);
+        if (gameLoopTimeoutRef.current)
+          clearTimeout(gameLoopTimeoutRef.current);
+        return;
+      }
+      const newState = await game.triggerNextAiMove();
+      if (newState && !newState.game_over && gameInProgress) {
+        const delay =
+          newState.current_player_key === currentStateFromApi.current_player_key
+            ? 700
+            : 2000;
+        if (gameLoopTimeoutRef.current)
+          clearTimeout(gameLoopTimeoutRef.current);
+        gameLoopTimeoutRef.current = setTimeout(
+          () => runAiGameLoop(newState),
+          delay
+        );
+      } else {
+        setGameInProgress(false);
+        if (newState && newState.game_over) console.log("AI Game Ended");
+      }
+    },
+    [game, gameInProgress]
+  );
+
+  const handleRestartAiGame = useCallback(() => {
+    if (gameLoopTimeoutRef.current) clearTimeout(gameLoopTimeoutRef.current);
+    setGameInProgress(false);
+    setShowNameModal(true);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (gameLoopTimeoutRef.current) clearTimeout(gameLoopTimeoutRef.current);
+    };
+  }, []);
+
+  if (showNameModal) {
+    /* ... (modal JSX as before) ... */
+    return (
+      <div className="ai-name-modal-backdrop">
+        <div className="ai-name-modal-card">
+          <h2>AI vs AI Battle!</h2>
+          <div>
+            <label htmlFor="ai1Name">AI Player 1 Name:</label>
+            <input
+              type="text"
+              id="ai1Name"
+              value={ai1Name}
+              onChange={(e) => setAi1Name(e.target.value)}
+            />
+          </div>
+          <div>
+            <label htmlFor="ai2Name">AI Player 2 Name:</label>
+            <input
+              type="text"
+              id="ai2Name"
+              value={ai2Name}
+              onChange={(e) => setAi2Name(e.target.value)}
+            />
+          </div>
+          <button onClick={startGame} className="control-button submit-button">
+            Start Watching
+          </button>
           <button
             onClick={() => navigate("/")}
-            className="control-button new-game-btn"
-            style={{ marginTop: "20px" }}
+            className="control-button secondary"
+            style={{ marginTop: "10px" }}
           >
-            {" "}
-            Go Back Home{" "}
+            Back to Menu
           </button>
         </div>
+      </div>
+    );
+  }
+  if (
+    game.loading ||
+    !game.gameState ||
+    game.gameState.game_mode !== "ai_vs_ai"
+  ) {
+    return (
+      <div className="loading-screen">
+        {game.loading || !game.gameState
+          ? "Initializing AI Battle..."
+          : "Configuring AI vs AI..."}
+      </div>
+    );
+  }
+  return (
+    <div className="game-screen">
+      <div className="game-container">
+        {/* ... (error/message and buttons) ... */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            gap: "10px",
+            margin: "10px 0",
+          }}
+        >
+          <button
+            onClick={handleRestartAiGame}
+            className="control-button new-game-btn secondary"
+          >
+            New AI Battle
+          </button>
+          <button
+            onClick={() => {
+              setGameInProgress(false);
+              if (gameLoopTimeoutRef.current)
+                clearTimeout(gameLoopTimeoutRef.current);
+              navigate("/");
+            }}
+            className="control-button secondary"
+          >
+            Back to Menu
+          </button>
+        </div>
+        {!game.gameState.game_over && gameInProgress && (
+          <p style={{ textAlign: "center", fontWeight: "bold" }}>
+            Watching AI Battle... ({game.gameState.current_player_display_name}
+            's turn)
+          </p>
+        )}
+        {game.gameState.game_over && (
+          <p style={{ textAlign: "center", fontWeight: "bold" }}>
+            Battle Concluded!
+          </p>
+        )}
+        <Board
+          {...game.gameState}
+          tiles={[]}
+          isAiThinking={game.isAiThinking}
+          selectedCell={null}
+          selectedTile={null}
+          placedTiles={[]}
+          direction="horizontal"
+          onCellClick={() => {}}
+          onTileClick={() => {}}
+          setDirection={() => {}}
+          onMakeMove={() => {}}
+          onClearPlacement={() => {}}
+          onPassTurn={() => {}}
+          onNewGame={handleRestartAiGame}
+        />
       </div>
     </div>
   );
@@ -709,9 +924,8 @@ function App() {
               path="*"
               element={
                 <div style={{ textAlign: "center", marginTop: "50px" }}>
-                  {" "}
-                  <h1>404 - Page Not Found</h1>{" "}
-                  <p>Sorry, the page you are looking for does not exist.</p>{" "}
+                  <h1>404</h1>
+                  <p>Page Not Found</p>
                 </div>
               }
             />
@@ -721,5 +935,4 @@ function App() {
     </Router>
   );
 }
-
 export default App;

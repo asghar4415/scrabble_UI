@@ -727,3 +727,103 @@
 .player-rack .tile.placed-on-board.disabled-interaction {
     opacity: 0.6; /* Keep placed style */
 }
+
+
+/* ====================
+ AI Thinking Modal & Disabled Styles
+ ==================== */
+
+/* Full-screen backdrop for the modal, appears on top */
+.ai-thinking-modal-backdrop {
+  position: fixed; /* Cover the whole viewport */
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.3); /* Darker, slightly more opaque backdrop */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000; /* High z-index to be on top of everything */
+  /* pointer-events: none; /* Backdrop itself should not be interactive */
+}
+
+/* The modal card itself */
+.ai-thinking-modal-card {
+  background-color: var(--tile-light); /* Use a theme color */
+  padding: 25px 35px;
+  border-radius: 12px;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.25);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border: 3px solid var(--dark-wood);
+  min-width: 280px; /* Ensure a decent minimum width */
+  max-width: 90%;
+}
+
+.ai-thinking-modal-card p {
+  color: var(--dark-wood);
+  font-size: 1.5em; /* Larger text for the main message */
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+.ai-thinking-modal-card span {
+  color: var(--accent);
+  font-size: 1.1em;
+  font-weight: 500;
+  margin-bottom: 15px; /* Space before spinner */
+}
+
+/* Simple CSS Spinner */
+.spinner {
+  border: 4px solid rgba(0, 0, 0, 0.1);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border-left-color: var(--crimson); /* Use accent color for spinner */
+  animation: spin 1s ease-infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+
+/* Class to apply blur to the main game layout */
+.game-layout.blurred {
+  filter: blur(4px);
+  pointer-events: none; /* Prevent interaction with blurred background */
+  /* Optionally, dim it further or apply other effects */
+  /* opacity: 0.7; */
+}
+
+/* General class for elements where interaction is disabled due to AI turn */
+.interaction-disabled {
+  cursor: not-allowed !important;
+  /* Optional: slightly reduce opacity for non-button elements if needed */
+  /* opacity: 0.7; */
+}
+
+/* Ensure buttons with HTML 'disabled' attribute also get the 'not-allowed' cursor */
+.control-button:disabled,
+.direction-button:disabled,
+.player-rack .tile:disabled {
+  cursor: not-allowed !important;
+  /* Specific styling for disabled buttons is already handled by :disabled pseudo-class */
+}
+
+
+/* Ensure placed tiles in rack are still visually distinct when interaction is disabled */
+.player-rack .tile.placed-on-board.interaction-disabled,
+.player-rack .tile.placed-on-board:disabled {
+    opacity: 0.6; /* Keep the visual cue for "placed" */
+}
+

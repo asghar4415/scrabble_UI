@@ -1,4 +1,3 @@
-
 /* boardstyles.css - Updated Styles */
 :root {
   --wood: #5E3C23;
@@ -16,88 +15,32 @@
   --text-light: #f8f8f8;
   --placed-outline: #f0ad4e;
   --permanent-tile-bg: #eaddbf;
+  --disabled-bg: #cccccc; /* Added from App.css for consistency */
+  --disabled-text: #666666; /* Added from App.css for consistency */
+  --crimson: #9D1F15; /* Added from App.css for consistency */
 }
 
-/* Board Grid */
-.scrabble-board {
-  display: grid;
-  grid-template-columns: repeat(15, 1fr);
-  width: 100%;
-  max-width: 600px;
-  aspect-ratio: 1/1;
-  background: var(--board-bg);
-  border: 2px solid var(--wood);
-  border-radius: 8px;
-  padding: 5px;
-}
-
-/* Board Cells */
-.board-cell {
-  aspect-ratio: 1/1;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background-color: var(--cell-bg);
-  cursor: pointer;
-  position: relative;
-  transition: all 0.15s ease;
-}
-
-.board-cell:hover {
-  background-color: var(--highlight);
-  transform: scale(1.02);
-}
-
-.board-cell.selected {
-  outline: 2px solid var(--accent);
-  z-index: 2;
-}
-
-/* Premium Squares */
-.board-cell.DL { background-color: var(--premium-dl); }
-.board-cell.TL { background-color: var(--premium-tl); color: white; }
-.board-cell.DW { background-color: var(--premium-dw); }
-.board-cell.TW { background-color: var(--premium-tw); color: white; }
-
-/* Tiles */
-.cell-tile {
-  width: 90%;
-  height: 90%;
-  background-color: var(--tile-bg);
-  color: var(--tile-letter);
-  border-radius: 3px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  font-weight: bold;
-  font-size: 1.5rem;
-}
-
-
-
-
+/* Game Layout */
 .game-layout {
   display: flex;
-  gap: clamp(15px, 3vw, 25px); /* Responsive gap */
-  flex-wrap: wrap; /* Allow wrapping on smaller screens */
+  gap: clamp(15px, 3vw, 25px); 
+  flex-wrap: wrap; 
 }
 
 .board-area {
-  flex: 2 1 500px; /* More flexible board area, base width lower */
+  flex: 2 1 500px; 
   display: flex;
   justify-content: center;
-  align-items: flex-start; /* Align board to top */
-  min-width: 300px; /* Ensure board area doesn't get too small */
+  align-items: flex-start; 
+  min-width: 300px; 
 }
 
 .sidebar-area {
-  flex: 1 1 280px; /* Sidebar takes less space initially */
+  flex: 1 1 280px; 
   display: flex;
   flex-direction: column;
-  gap: 15px; /* Slightly smaller gap in sidebar */
-  min-width: 260px; /* Minimum width for sidebar */
+  gap: 18px; /* Increased gap slightly */
+  min-width: 260px; 
 }
 
 /* ====================
@@ -105,98 +48,84 @@
  ==================== */
 
 .scrabble-board {
-  display: grid; /* Use Grid for the board itself */
-  grid-template-columns: repeat(15, 1fr); /* 15 equal columns */
-  /* grid-template-rows: repeat(15, 1fr);  Let aspect-ratio handle rows */
-  width: 100%; /* Make grid take available width */
-  max-width: 600px; /* Max width for the board grid itself */
-  aspect-ratio: 1 / 1; /* Maintain square board */
+  display: grid; 
+  grid-template-columns: repeat(15, 1fr); 
+  width: 100%; 
+  max-width: 600px; 
+  aspect-ratio: 1 / 1; 
   background: var(--board-bg);
-  border: clamp(8px, 1.5vw, 12px) solid var(--wood); /* Responsive border */
+  border: clamp(8px, 1.5vw, 12px) solid var(--wood); 
   border-radius: 8px;
-  padding: clamp(3px, 0.8vw, 5px); /* Responsive padding */
+  padding: clamp(3px, 0.8vw, 5px); 
   box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.2), 0 4px 10px rgba(0,0,0,0.2);
-  /* Prevent interaction during AI turn? maybe overlay instead */
 }
 
-/* Board Row is no longer needed with Grid */
-/* .board-row { display: flex; } */
-
 .board-cell {
-  /* Width/Height handled by grid and aspect-ratio */
   border: 1px solid rgba(0, 0, 0, 0.15);
   display: flex;
   justify-content: center;
   align-items: center;
   background-color: var(--cell-bg);
   cursor: pointer;
-  position: relative; /* For indicators and tiles */
+  position: relative; 
   transition: background-color 0.15s ease;
-  font-size: clamp(0.6rem, 1.8vw, 0.8rem); /* Responsive font size for indicators */
+  font-size: clamp(0.6rem, 1.8vw, 0.8rem); 
   font-weight: bold;
   color: var(--text-dark);
-  overflow: hidden; /* Hide overflow */
+  overflow: hidden; 
 }
 
-.board-cell:hover:not(.permanent):not(.placed) { /* Hover only on clickable cells */
+.board-cell:hover:not(.permanent):not(.placed):not(.interaction-disabled) { 
   background-color: var(--highlight);
 }
 
-/* Cell States */
-.board-cell.selected { /* Cell selected by user */
+.board-cell.selected { 
   outline: 3px solid var(--accent);
   outline-offset: -3px;
   z-index: 1;
 }
 
-
-.board-cell.permanent { /* Cell with a confirmed tile from previous turns */
+.board-cell.permanent { 
   cursor: default;
 }
 .board-cell.permanent:hover {
-  background-color: inherit; /* No hover effect, keep premium color */
+  background-color: inherit; 
 }
-/* Override background for permanent cells on premium squares */
 .board-cell.permanent.DL { background-color: var(--premium-dl); }
 .board-cell.permanent.TL { background-color: var(--premium-tl); color: var(--text-light); }
 .board-cell.permanent.DW { background-color: var(--premium-dw); }
 .board-cell.permanent.TW { background-color: var(--premium-tw); color: var(--text-light); }
 
-/* Premium Square Backgrounds (Applied by class) */
 .board-cell.DL { background-color: var(--premium-dl); }
 .board-cell.TL { background-color: var(--premium-tl); color: var(--text-light); }
 .board-cell.DW { background-color: var(--premium-dw); }
 .board-cell.TW { background-color: var(--premium-tw); color: var(--text-light); }
 
-/* Premium Square Indicators (Text) */
 .square-indicator {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  font-size: inherit; /* Inherit from cell */
+  font-size: inherit; 
   font-weight: bold;
   opacity: 0.9;
-  pointer-events: none; /* Don't interfere with clicks */
+  pointer-events: none; 
   text-align: center;
-  line-height: 1; /* Keep tight */
+  line-height: 1; 
   padding: 1px;
   white-space: nowrap;
 }
-/* Ensure text color contrasts with background */
 .board-cell.TL .square-indicator,
 .board-cell.TW .square-indicator {
    color: var(--text-light);
 }
 .board-cell.DL .square-indicator,
 .board-cell.DW .square-indicator {
-   color: var(--text-dark); /* Ensure contrast on light premiums */
+   color: var(--text-dark); 
 }
 
-
-/* Center Star */
 .center-star {
-  font-size: 1.6em; /* Slightly larger star */
+  font-size: 1.6em; 
   color: var(--accent);
   position: absolute;
   top: 50%;
@@ -204,62 +133,60 @@
   transform: translate(-50%, -50%);
   pointer-events: none;
 }
-.board-cell.DW .center-star { display: none; } /* Hide star if DW text is shown */
+.board-cell.DW .center-star { display: none; } 
 
 
 /* ====================
  Tiles (On Board & Rack)
  ==================== */
 
-.cell-tile, .tile { /* Common tile styles */
+.cell-tile, .tile { 
   display: flex;
   flex-direction: column;
-  justify-content: center; /* Center vertically */
-  align-items: center; /* Center horizontally */
+  justify-content: center; 
+  align-items: center; 
   font-weight: bold;
-  position: relative; /* For score */
+  position: relative; 
   background-color: var(--tile-bg);
   color: var(--tile-letter);
-  border-radius: clamp(2px, 0.5vw, 4px); /* Responsive radius */
+  border-radius: clamp(2px, 0.5vw, 4px); 
   box-shadow: 1px 1px 2px rgba(0,0,0,0.2), inset 0 0 1px rgba(255,255,255,0.3);
   border: 1px solid rgba(0, 0, 0, 0.1);
-  user-select: none; /* Prevent text selection */
+  user-select: none; 
 }
 
-.cell-tile { /* Tile placed on board */
-  width: 92%; /* Slightly smaller than cell */
+.cell-tile { 
+  width: 92%; 
   height: 92%;
-  font-size: clamp(1rem, 3.5vw, 1.5rem); /* Responsive tile letter */
+  font-size: clamp(1rem, 3.5vw, 1.5rem); 
 }
-.cell-tile.temp-placed { /* Tile placed THIS turn */
-  /* background-color: #fff7d6; */ /* Slightly lighter - subtle */
-   outline: clamp(2px, 0.4vw, 3px) solid var(--placed-outline); /* Orange outline */
+.cell-tile.temp-placed { 
+   outline: clamp(2px, 0.4vw, 3px) solid var(--placed-outline); 
    outline-offset: -2px;
-   z-index: 2; /* Ensure placed tile visuals are on top */
+   z-index: 2; 
 }
-/* Style permanent tile background differently */
 .board-cell.permanent .cell-tile {
   background-color: var(--permanent-tile-bg);
-   box-shadow: inset 1px 1px 3px rgba(0,0,0,0.1); /* Inner shadow for depth */
+   box-shadow: inset 1px 1px 3px rgba(0,0,0,0.1); 
 }
 
 .tile-letter-main {
-  line-height: 1; /* Ensure letter is centered */
-  flex-grow: 1; /* Allow letter to take up space */
+  line-height: 1; 
+  flex-grow: 1; 
   display: flex;
   align-items: center;
   justify-content: center;
-  padding-bottom: clamp(2px, 1vw, 5px); /* Push letter up slightly for score */
+  padding-bottom: clamp(2px, 1vw, 5px); 
 }
 
 .tile-score-sub {
   position: absolute;
   bottom: clamp(1px, 0.5vw, 2px);
   right: clamp(2px, 0.8vw, 3px);
-  font-size: clamp(0.5rem, 1.5vw, 0.7rem); /* Responsive score */
-  font-weight: 600; /* Semi-bold */
+  font-size: clamp(0.5rem, 1.5vw, 0.7rem); 
+  font-weight: 600; 
   line-height: 1;
-  color: var(--tile-letter); /* Match letter color */
+  color: var(--tile-letter); 
 }
 
 /* ====================
@@ -267,7 +194,7 @@
  ==================== */
 
 .player-rack-section {
-  background: #fffcf0; /* Slightly lighter than board */
+  background: #fffcf0; 
   padding: 15px;
   border-radius: 8px;
   border: 1px solid var(--board-bg);
@@ -284,18 +211,17 @@
 
 .player-rack {
   display: flex;
-  gap: clamp(4px, 1vw, 6px); /* Responsive Spacing */
-  padding: 5px 0; /* Vertical padding only */
-  flex-wrap: wrap; /* Allow tiles to wrap */
-  justify-content: center; /* Center tiles */
-  min-height: 55px; /* Ensure rack has some height even when empty */
+  gap: clamp(4px, 1vw, 6px); 
+  padding: 5px 0; 
+  flex-wrap: wrap; 
+  justify-content: center; 
+  min-height: 55px; 
 }
 
-.player-rack .tile { /* Rack tile specific */
-  /* Responsive rack tile size */
+.player-rack .tile { 
   width: clamp(38px, 9vw, 48px);
   height: clamp(42px, 10vw, 55px);
-  font-size: clamp(1.2rem, 4vw, 1.7rem); /* Responsive rack letter size */
+  font-size: clamp(1.2rem, 4vw, 1.7rem); 
   cursor: pointer;
   transition: transform 0.1s ease-out, box-shadow 0.1s ease-out, outline 0.1s ease-out;
   background-color: var(--tile-bg);
@@ -307,27 +233,26 @@
   box-shadow: 0 4px 6px rgba(0,0,0,0.2);
 }
 
-.player-rack .tile.selected { /* Selected tile style */
+.player-rack .tile.selected { 
   transform: translateY(-5px) scale(1.05);
   box-shadow: 0 5px 10px rgba(0,0,0,0.3);
   outline: 2px solid var(--accent);
   outline-offset: 2px;
-  z-index: 10; /* Ensure selected is on top */
+  z-index: 10; 
 }
 
-.player-rack .tile.placed-on-board { /* Tile visually marked as placed */
+.player-rack .tile.placed-on-board { 
   opacity: 0.6;
-  cursor: pointer; /* Still clickable to recall */
-  background-color: #e0e0e0; /* Grey out */
-  box-shadow: inset 1px 1px 3px rgba(0,0,0,0.2); /* Inner shadow */
-  transform: none; /* Reset transform */
+  cursor: pointer; 
+  background-color: #e0e0e0; 
+  box-shadow: inset 1px 1px 3px rgba(0,0,0,0.2); 
+  transform: none; 
 }
-.player-rack .tile.placed-on-board:hover {
-   transform: translateY(-3px); /* Allow slight lift on hover even when placed */
+.player-rack .tile.placed-on-board:hover:not(:disabled) { /* Allow hover effect if not fully disabled */
+   transform: translateY(-3px); 
    opacity: 0.7;
    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
 }
-
 
 .empty-rack-message {
   color: var(--disabled-text);
@@ -356,39 +281,36 @@
   margin-bottom: 0;
 }
 
-
-/* Buttons (General) */
 .control-button, .direction-button {
-  padding: clamp(8px, 1.5vw, 10px) clamp(12px, 2vw, 15px); /* Responsive padding */
+  padding: clamp(8px, 1.5vw, 10px) clamp(12px, 2vw, 15px); 
   border: none;
   border-radius: 5px;
-  font-size: clamp(0.8rem, 2vw, 0.95rem); /* Responsive font size */
+  font-size: clamp(0.8rem, 2vw, 0.95rem); 
   font-weight: bold;
   cursor: pointer;
   transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease;
   text-align: center;
-  white-space: nowrap; /* Prevent wrapping */
+  white-space: nowrap; 
 }
 .control-button:active:not(:disabled), .direction-button:active:not(:disabled) {
-  transform: translateY(1px); /* Press down effect */
+  transform: translateY(1px); 
 }
 
 .control-button:disabled, .direction-button:disabled {
-  background-color: var(--disabled-bg) !important; /* Force disabled bg color */
+  background-color: var(--disabled-bg) !important; 
   color: var(--disabled-text) !important;
   cursor: not-allowed;
   box-shadow: none !important;
   transform: none !important;
 }
 
-/* Direction Toggle */
 .direction-toggle {
   display: flex;
   gap: 10px;
 }
 
 .direction-button {
-  flex: 1; /* Take equal space */
+  flex: 1; 
   background-color: #e0e0e0;
   color: var(--text-dark);
   border: 1px solid #bdbdbd;
@@ -404,19 +326,15 @@
    background-color: #d0d0d0;
 }
 
-
-/* Action Buttons */
 .action-buttons {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); /* Responsive columns */
+  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); 
   gap: 10px;
 }
 
 .control-button.submit-button {
-  background-color: #4CAF50; /* Green */
+  background-color: #4CAF50; 
   color: white;
-  font-size: small;
-  
 }
 .control-button.submit-button:hover:not(:disabled) {
   background-color: #45a049;
@@ -424,10 +342,8 @@
 }
 
 .control-button.clear-button {
-  background-color: #ff9800; /* Orange */
+  background-color: #ff9800; 
   color: white;
-  font-size: small;
-
 }
 .control-button.clear-button:hover:not(:disabled) {
    background-color: #f57c00;
@@ -435,10 +351,8 @@
 }
 
 .control-button.pass-button {
-  background-color: #607d8b; /* Blue Grey */
+  background-color: #607d8b; 
   color: white;
-  font-size: small;
-
 }
 .control-button.pass-button:hover:not(:disabled) {
    background-color: #546e7a;
@@ -448,25 +362,19 @@
 .control-button.new-game-btn {
   background-color: var(--wood);
   color: var(--text-light);
-  font-size: small;
-
 }
 .control-button.new-game-btn:hover:not(:disabled) {
-   background-color: #4a2f1a; /* Darker wood */
+   background-color: #4a2f1a; 
    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
 }
-.control-button.new-game-btn.secondary { /* Restart button style */
+.control-button.new-game-btn.secondary { 
   background-color: #e0e0e0;
   color: var(--text-dark);
-  font-size: small;
-
 }
 .control-button.new-game-btn.secondary:hover:not(:disabled) {
   background-color: #d0d0d0;
 }
 
-
-/* Game Over Controls */
 .game-over-controls {
   text-align: center;
   padding: 10px;
@@ -487,24 +395,23 @@
   align-items: center;
   background: var(--wood);
   color: var(--text-light);
-  padding: clamp(8px, 2vw, 12px) clamp(10px, 2.5vw, 15px); /* Responsive padding */
+  padding: clamp(8px, 2vw, 12px) clamp(10px, 2.5vw, 15px); 
   border-radius: 8px;
   box-shadow: 0 2px 5px rgba(0,0,0,0.15);
-  flex-wrap: wrap; /* Wrap items if needed */
-  gap: clamp(8px, 2vw, 15px); /* Responsive gap */
+  flex-wrap: wrap; 
+  gap: clamp(8px, 2vw, 15px); 
 }
 
 .score-item {
   display: flex;
-  flex-direction: column; /* Stack label and score */
+  flex-direction: column; 
   align-items: center;
   text-align: center;
-  min-width: 60px; /* Minimum width */
+  min-width: 60px; 
   line-height: 1.2;
 }
 .score-item.active-turn .player-label {
-  /* font-weight: bold; */ /* Indicator handles emphasis */
-  color: #ffd700; /* Gold color for active label */
+  color: #ffd700; 
 }
 
 .player-label {
@@ -516,29 +423,21 @@
 .score-value {
   font-size: clamp(1.1rem, 3.5vw, 1.4rem);
   font-weight: bold;
-  color: var(--tile-bg); /* Make score pop */
+  color: var(--tile-bg); 
 }
 
 .turn-indicator {
   font-size: clamp(0.7rem, 1.6vw, 0.8rem);
-  color: #ffd700; /* Gold color */
+  color: #ffd700; 
   font-weight: bold;
-  /* animation: blink 1.5s infinite ease-in-out; */ /* Blinking can be annoying */
-  display: inline-block; /* Or block if needed */
-  margin-top: -2px; /* Adjust vertical position */
+  display: inline-block; 
+  margin-top: -2px; 
   text-shadow: 0 0 3px rgba(0,0,0,0.5);
 }
 
-/* @keyframes blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-} */
-
-/* Score item for tiles remaining */
 .score-item.tiles-remaining .score-value {
-  font-size: clamp(1rem, 3vw, 1.3rem); /* Slightly smaller */
+  font-size: clamp(1rem, 3vw, 1.3rem); 
 }
-
 
 /* ====================
  Messages & Indicators within Board Component
@@ -554,97 +453,30 @@
 
 .first-move-indicator {
   color: var(--accent);
-  background-color: #fff9e6; /* Light yellow */
+  background-color: #fff9e6; 
   font-weight: 500;
 }
 
 .turn-announcement {
   color: var(--dark-wood);
-  background-color: var(--tile-dark); /* Match board bg */
+  background-color: var(--tile-dark); 
   font-weight: bold;
 }
-
-
-/* ====================
- Responsive Design Adjustments specific to Board
- ==================== */
-
-@media (max-width: 768px) {
-  .game-layout {
-      flex-direction: column; /* Stack board and sidebar */
-      gap: 20px;
-  }
-
-  .board-area {
-      order: 1; /* Show board first */
-      flex-basis: auto; /* Reset basis */
-      width: 100%; /* Allow board area to take full width */
-      align-items: center; /* Center board grid horizontally */
-  }
-
-
-  .sidebar-area {
-      order: 2; /* Sidebar below board */
-      flex-basis: auto;
-      min-width: unset;
-      width: 100%; /* Allow sidebar to take full width */
-      max-width: 600px; /* Limit sidebar width to match board max */
-      margin: 0 auto; /* Center sidebar */
-  }
-
-  .player-rack {
-      justify-content: flex-start; /* Align tiles left on smaller screens */
-      padding: 5px; /* Add some padding */
-  }
-}
-
-@media (max-width: 480px) {
-   .sidebar-area {
-      gap: 12px; /* Reduce gap */
-   }
-   .player-rack-section, .game-controls {
-       padding: 10px; /* Reduce padding */
-   }
-   .rack-title {
-       font-size: 1rem;
-       margin-bottom: 8px;
-   }
-   .scoreboard {
-       padding: 8px 10px;
-       gap: 5px 10px; /* Row and column gap */
-       justify-content: space-between;
-   }
-   .score-item {
-        flex-basis: 30%; /* Roughly 3 items per row */
-        min-width: 50px;
-   }
-
-   .action-buttons {
-       grid-template-columns: 1fr 1fr; /* Force 2 columns */
-   }
-   .control-button, .direction-button {
-       padding: 8px 10px;
-       font-size: 0.8rem;
-   }
-   .first-move-indicator, .turn-announcement {
-      font-size: 0.75rem;
-      padding: 5px 8px;
-      margin-top: 8px;
-  }
-}
-
 
 /* ====================
  Objective Display
  ==================== */
 
  .objective-display {
-  background: #fdf5e6; /* Very light beige/cream */
+  background: #fdf5e6; 
   padding: 10px 15px;
   border-radius: 6px;
   border: 1px solid var(--board-bg);
-  margin-top: 5px; /* Add some space above */
+  /* margin-top: 5px; Removed to rely on sidebar-area gap */
   box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
+}
+.objective-display.human-objective { /* Specific styling for human objective card */
+    /* Add any specific styles if needed, otherwise general .objective-display applies */
 }
 
 .objective-title {
@@ -671,86 +503,32 @@
 }
 
 .objective-status.in-progress {
-  color: #b8860b; /* Dark Goldenrod */
+  color: #b8860b; 
 }
 
 .objective-status.completed {
-  color: #228b22; /* Forest Green */
+  color: #228b22; 
 }
-
-/* Adjust sidebar gap if needed */
-.sidebar-area {
-  gap: 18px; /* Increase gap slightly if objective feels cramped */
-}
-
-/* ====================
- AI Thinking Overlay & Disabled Styles
- ==================== */
-
- .ai-thinking-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(255, 255, 255, 0.8); /* Semi-transparent white overlay */
-  display: flex;
-  flex-direction: column; /* Stack text */
-  justify-content: center;
-  align-items: center;
-  z-index: 50; /* Ensure it's above board/sidebar but below modals maybe */
-  border-radius: 8px; /* Match container */
-  text-align: center;
-  pointer-events: auto; /* Allow overlay to capture events if needed, though controls are disabled */
-}
-
-.ai-thinking-overlay p {
-  color: var(--dark-wood);
-  font-size: 1.4em;
-  font-weight: bold;
-  margin-bottom: 5px;
-  padding: 0 10px;
-}
-.ai-thinking-overlay span {
-  color: var(--accent);
-  font-size: 1em;
-  font-weight: 500;
-}
-
-
-.disabled-interaction {
-  cursor: not-allowed !important; /* Override cursor */
-  opacity: 0.7; /* Slightly fade disabled elements */
-}
-
-
-.player-rack .tile.placed-on-board.disabled-interaction {
-    opacity: 0.6; /* Keep placed style */
-}
-
 
 /* ====================
  AI Thinking Modal & Disabled Styles
  ==================== */
 
-/* Full-screen backdrop for the modal, appears on top */
 .ai-thinking-modal-backdrop {
-  position: fixed; /* Cover the whole viewport */
+  position: fixed; 
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.3); /* Darker, slightly more opaque backdrop */
+  background-color: rgba(0, 0, 0, 0.3); 
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1000; /* High z-index to be on top of everything */
-  /* pointer-events: none; /* Backdrop itself should not be interactive */
+  z-index: 1000; 
 }
 
-/* The modal card itself */
 .ai-thinking-modal-card {
-  background-color: var(--tile-light); /* Use a theme color */
+  background-color: var(--tile-light); 
   padding: 25px 35px;
   border-radius: 12px;
   box-shadow: 0 5px 20px rgba(0, 0, 0, 0.25);
@@ -759,13 +537,13 @@
   flex-direction: column;
   align-items: center;
   border: 3px solid var(--dark-wood);
-  min-width: 280px; /* Ensure a decent minimum width */
+  min-width: 280px; 
   max-width: 90%;
 }
 
 .ai-thinking-modal-card p {
   color: var(--dark-wood);
-  font-size: 1.5em; /* Larger text for the main message */
+  font-size: 1.5em; 
   font-weight: bold;
   margin-bottom: 10px;
 }
@@ -774,106 +552,117 @@
   color: var(--accent);
   font-size: 1.1em;
   font-weight: 500;
-  margin-bottom: 15px; /* Space before spinner */
+  margin-bottom: 15px; 
 }
 
-/* Simple CSS Spinner */
 .spinner {
   border: 4px solid rgba(0, 0, 0, 0.1);
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  border-left-color: var(--crimson); /* Use accent color for spinner */
+  border-left-color: var(--crimson); 
   animation: spin 1s ease-infinite;
+  margin-top: 10px; /* Added space for spinner */
 }
 
 @keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
-
-/* Class to apply blur to the main game layout */
 .game-layout.blurred {
   filter: blur(4px);
-  pointer-events: none; /* Prevent interaction with blurred background */
-  /* Optionally, dim it further or apply other effects */
-  /* opacity: 0.7; */
+  pointer-events: none; 
 }
 
-/* General class for elements where interaction is disabled due to AI turn */
 .interaction-disabled {
   cursor: not-allowed !important;
-  /* Optional: slightly reduce opacity for non-button elements if needed */
-  /* opacity: 0.7; */
+}
+.board-cell.interaction-disabled:hover { /* Ensure no hover on disabled cells */
+  background-color: inherit; /* Keep original bg or premium bg */
+  transform: none;
 }
 
-/* Ensure buttons with HTML 'disabled' attribute also get the 'not-allowed' cursor */
-.control-button:disabled,
-.direction-button:disabled,
-.player-rack .tile:disabled {
+.player-rack .tile:disabled,
+.player-rack .tile.interaction-disabled { /* Styles for disabled rack tiles */
+  opacity: 0.5;
   cursor: not-allowed !important;
-  /* Specific styling for disabled buttons is already handled by :disabled pseudo-class */
-}
-
-
-/* Ensure placed tiles in rack are still visually distinct when interaction is disabled */
-.player-rack .tile.placed-on-board.interaction-disabled,
-.player-rack .tile.placed-on-board:disabled {
-    opacity: 0.6; /* Keep the visual cue for "placed" */
-}
-
-/* --- START OF boardstyles.css ADDITIONS (for AI vs AI specific elements) --- */
-
-/* Controls for AI vs AI mode (can be simpler) */
-.game-controls.ai-vs-ai-controls {
-  text-align: center;
-  padding: 20px;
-  background: none; /* Or a very subtle background */
+  background-color: var(--disabled-bg); /* More distinct disabled look */
+  color: var(--disabled-text);
   box-shadow: none;
-  border: none;
+  transform: none;
 }
-.game-controls.ai-vs-ai-controls p {
-  font-size: 1.1rem;
-  color: var(--dark-wood);
-  font-weight: 500;
-  margin-bottom: 15px;
-}
-
-/* Styling for multiple AI objectives if shown */
-.ai-objectives-container {
-  display: flex;
-  flex-direction: column;
-  gap: 8px; /* Space between objectives */
-  margin-bottom: 10px; /* Space below the objectives block */
+.player-rack .tile.placed-on-board:disabled, /* Ensure placed tiles still look somewhat distinct when disabled */
+.player-rack .tile.placed-on-board.interaction-disabled {
+    opacity: 0.6; 
+    background-color: #e0e0e0; /* Keep placed style if also disabled */
 }
 
-.ai-objective-item {
-  background-color: rgba(253, 245, 230, 0.7); /* Slightly transparent version of objective bg */
-  padding: 8px 12px;
-  border-radius: 4px;
-  border: 1px solid rgba(var(--board-bg), 0.5);
-}
-.ai-objective-item .objective-title{
-  font-size: 0.9rem;
-  margin-bottom: 3px;
-}
-.ai-objective-item .objective-desc.small {
-  font-size: 0.8rem;
-  margin-bottom: 0;
-}
-.ai-objective-item.current-ai-objective {
-  border-left: 4px solid var(--accent); /* Highlight current AI's objective */
-  background-color: var(--fdf5e6);
+
+/* ====================
+ Responsive Design Adjustments specific to Board
+ ==================== */
+
+@media (max-width: 768px) {
+  .game-layout {
+      flex-direction: column; 
+      gap: 20px;
+  }
+
+  .board-area {
+      order: 1; 
+      flex-basis: auto; 
+      width: 100%; 
+      align-items: center; 
+  }
+
+  .sidebar-area {
+      order: 2; 
+      flex-basis: auto;
+      min-width: unset;
+      width: 100%; 
+      max-width: 600px; 
+      margin: 0 auto; 
+  }
+
+  .player-rack {
+      justify-content: flex-start; 
+      padding: 5px; 
+  }
 }
 
-/* Ensure the main AI thinking modal is distinct if both can appear (though unlikely simultaneously for long) */
-.ai-thinking-modal-card .spinner {
-  margin-top: 10px; /* Add some space above spinner in the modal */
-}
+@media (max-width: 480px) {
+   .sidebar-area {
+      gap: 12px; 
+   }
+   .player-rack-section, .game-controls, .objective-display {
+       padding: 10px; 
+   }
+   .rack-title {
+       font-size: 1rem;
+       margin-bottom: 8px;
+   }
+   .scoreboard {
+       padding: 8px 10px;
+       gap: 5px 10px; 
+       justify-content: space-between;
+   }
+   .score-item {
+        flex-basis: 30%; 
+        min-width: 50px;
+   }
 
-/* --- END OF boardstyles.css ADDITIONS --- */
+   .action-buttons {
+       grid-template-columns: 1fr 1fr; 
+   }
+   .control-button, .direction-button {
+       padding: 8px 10px;
+       font-size: 0.8rem;
+   }
+   .first-move-indicator, .turn-announcement {
+      font-size: 0.75rem;
+      padding: 5px 8px;
+      margin-top: 8px;
+  }
+}
+/* Removed CSS for AI vs AI specific elements like .game-controls.ai-vs-ai-controls, .ai-objectives-container */

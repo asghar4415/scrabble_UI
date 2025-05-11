@@ -29,9 +29,7 @@ const LETTER_SCORES = {
   X: 8,
   Y: 4,
   Z: 10,
-  // Blank and Power Tiles have no inherent score value displayed
   " ": 0,
-  // 'D': 0 // No score shown for the Double Turn tile display 'D'
 };
 
 const premiumSquares = {
@@ -59,7 +57,7 @@ const premiumSquares = {
   "11,11": "DW",
   "12,12": "DW",
   "13,13": "DW",
-  "7,7": "DW",
+  "7,7": "DW", // Center square
   "1,5": "TL",
   "1,9": "TL",
   "5,1": "TL",
@@ -107,19 +105,20 @@ const BoardCell = React.memo(
     onClick,
     isSelected,
     isAiThinking,
-    gameMode,
-    currentPlayerKey,
+    currentPlayer, // "human" or "ai"
   }) => {
     const key = `${row},${col}`;
     const squareType = premiumSquares[key];
     const displayLetter = placedLetter || permanentLetter;
     const isPlacedThisTurn = !!placedLetter;
+
+    // Clickable only if it's human's turn, not permanent, not placed this turn, and AI not thinking
     const canClick =
-      gameMode === "human_vs_ai" &&
-      currentPlayerKey === "human" &&
+      currentPlayer === "human" &&
       !permanentLetter &&
       !isPlacedThisTurn &&
       !isAiThinking;
+
     let cellClass = `board-cell ${squareType || ""}`;
     if (isSelected && canClick) cellClass += " selected";
     if (isPlacedThisTurn) cellClass += " placed";
@@ -164,25 +163,26 @@ const BoardCell = React.memo(
             {squareType}
           </span>
         )}
-        {!displayLetter && isCenter && squareType !== "DW" && (
-          <span className="center-star" aria-hidden="true">
-            ★
-          </span>
-        )}
+        {!displayLetter &&
+          isCenter &&
+          squareType !== "DW" && ( // DW has its own text, don't overlay star
+            <span className="center-star" aria-hidden="true">
+              ★
+            </span>
+          )}
         {displayLetter && (
           <div
             className={`cell-tile ${isPlacedThisTurn ? "temp-placed" : ""}`}
             aria-hidden="true"
           >
             <span className="tile-letter-main">
-              {" "}
               {displayLetter === " " ? "★" : displayLetter}{" "}
+              {/* Assuming blank is shown as ★ */}
             </span>
             {displayLetter !== " " &&
               LETTER_SCORES[displayLetter] !== undefined && (
                 <span className="tile-score-sub">
-                  {" "}
-                  {LETTER_SCORES[displayLetter]}{" "}
+                  {LETTER_SCORES[displayLetter]}
                 </span>
               )}
           </div>
@@ -199,23 +199,19 @@ BoardCell.propTypes = {
   onClick: PropTypes.func.isRequired,
   isSelected: PropTypes.bool,
   isAiThinking: PropTypes.bool.isRequired,
-  gameMode: PropTypes.string,
-  currentPlayerKey: PropTypes.string,
+  currentPlayer: PropTypes.string,
 };
 
 const PlayerRack = React.memo(
   ({
-    tiles,
+    tiles, // This is always human's rack tiles
     onTileClick,
     selectedTileIndex,
     isAiThinking,
-    gameMode,
-    currentPlayerKey,
+    currentPlayer, // "human" or "ai"
   }) => {
-    const allowInteraction =
-      gameMode === "human_vs_ai" &&
-      currentPlayerKey === "human" &&
-      !isAiThinking;
+    // Interaction allowed only if human's turn and AI not thinking
+    const allowInteraction = currentPlayer === "human" && !isAiThinking;
     const displayTiles = Array.isArray(tiles) ? tiles : [];
 
     return (
@@ -223,7 +219,7 @@ const PlayerRack = React.memo(
         {displayTiles.map(({ letter, index, isPlaced }) => {
           const isSelectedForInteraction =
             allowInteraction && selectedTileIndex === index;
-          const isDisabledForInteraction = isPlaced || !allowInteraction;
+          const isDisabledForInteraction = isPlaced || !allowInteraction; // Disabled if placed or not human's interactive turn
           const tileLabel = letter === " " ? "Blank" : letter;
           const score = LETTER_SCORES[letter];
           const ariaLabel = `Tile ${tileLabel}${
@@ -233,6 +229,7 @@ const PlayerRack = React.memo(
           } ${
             isDisabledForInteraction && !isPlaced ? "Interaction disabled." : ""
           }`;
+
           return (
             <button
               key={`rack-${index}-${letter}`}
@@ -254,7 +251,8 @@ const PlayerRack = React.memo(
               aria-disabled={isDisabledForInteraction}
             >
               <span className="tile-letter-main" aria-hidden="true">
-                {letter === " " ? "★" : letter}
+                {letter === " " ? "★" : letter}{" "}
+                {/* Assuming blank is shown as ★ */}
               </span>
               {letter !== " " && score !== undefined && (
                 <span className="tile-score-sub" aria-hidden="true">
@@ -264,65 +262,38 @@ const PlayerRack = React.memo(
             </button>
           );
         })}
-        {gameMode === "human_vs_ai" && displayTiles.length === 0 && (
+        {/* Show empty rack message only if it's human's turn and rack is empty */}
+        {currentPlayer === "human" && displayTiles.length === 0 && (
           <span className="empty-rack-message">Your Rack is empty</span>
         )}
-        {gameMode === "ai_vs_ai" && (
-          <span className="empty-rack-message">Observing AI Players</span>
-        )}
+        {/* Removed AI vs AI spectator message */}
       </div>
     );
   }
 );
 PlayerRack.propTypes = {
-  tiles: PropTypes.array, // Now can be null/undefined initially
+  tiles: PropTypes.array,
   onTileClick: PropTypes.func.isRequired,
   selectedTileIndex: PropTypes.number,
   isAiThinking: PropTypes.bool.isRequired,
-  gameMode: PropTypes.string,
-  currentPlayerKey: PropTypes.string,
+  currentPlayer: PropTypes.string,
 };
 PlayerRack.defaultProps = { tiles: [] };
 
 const GameControls = ({
-  gameMode,
-  currentPlayerKey,
+  currentPlayer, // "human" or "ai"
   isAiThinking,
   onNewGame,
   gameOver,
-  canSubmit,
-  playerDisplayNames,
-  ...rest
+  canSubmit, // Derived in parent Board component
+  // playerDisplayNames, // Not needed here anymore
+  ...rest // Contains direction, setDirection, onMakeMove, etc.
 }) => {
+  // Human interactive turn if it's human's turn, game not over, and AI not thinking
   const isHumanInteractiveTurn =
-    gameMode === "human_vs_ai" &&
-    currentPlayerKey === "human" &&
-    !gameOver &&
-    !isAiThinking;
+    currentPlayer === "human" && !gameOver && !isAiThinking;
 
-  if (gameMode === "ai_vs_ai") {
-    return (
-      <div className="game-controls ai-vs-ai-controls">
-        {gameOver ? (
-          <div className="game-over-controls">
-            <h3>Battle Concluded!</h3>
-            <button onClick={onNewGame} className="control-button new-game-btn">
-              Watch Another?
-            </button>
-          </div>
-        ) : (
-          <p>
-            {" "}
-            {isAiThinking
-              ? `${
-                  rest.playerDisplayNames?.[currentPlayerKey] || "AI"
-                } Thinking...`
-              : "Watching AI Players..."}{" "}
-          </p>
-        )}
-      </div>
-    );
-  }
+  // AI vs AI mode branch removed
   return (
     <div className="game-controls">
       {gameOver ? (
@@ -364,7 +335,7 @@ const GameControls = ({
             </button>
             <button
               onClick={rest.onClearPlacement}
-              disabled={!isHumanInteractiveTurn || !canSubmit}
+              disabled={!isHumanInteractiveTurn || !canSubmit} // Clear only if tiles placed
               className="control-button clear-button"
             >
               Clear
@@ -378,9 +349,12 @@ const GameControls = ({
             </button>
             <button
               onClick={() => {
-                if (window.confirm("Restart?")) onNewGame();
+                if (
+                  window.confirm("Restart game? Current progress will be lost.")
+                )
+                  onNewGame();
               }}
-              disabled={isAiThinking}
+              disabled={isAiThinking} // Can restart even if it's AI's turn, but not if AI is currently processing
               className="control-button new-game-btn secondary"
             >
               Restart
@@ -392,36 +366,35 @@ const GameControls = ({
   );
 };
 GameControls.propTypes = {
-  playerDisplayNames: PropTypes.object, // Make optional or provide default
-  direction: PropTypes.string, // from ...rest
-  setDirection: PropTypes.func, // from ...rest
-  onMakeMove: PropTypes.func, // from ...rest
-  onClearPlacement: PropTypes.func, // from ...rest
-  onPassTurn: PropTypes.func, // from ...rest
-  gameMode: PropTypes.string, // Can be undefined initially
-  currentPlayerKey: PropTypes.string, // Can be undefined initially
+  currentPlayer: PropTypes.string,
   isAiThinking: PropTypes.bool.isRequired,
   onNewGame: PropTypes.func.isRequired,
   gameOver: PropTypes.bool.isRequired,
   canSubmit: PropTypes.bool.isRequired,
-  // direction, setDirection etc. are in ...rest
+  // direction, setDirection etc. are in ...rest via PropTypes.object for rest if needed
+  // For simplicity, assuming rest contains the functions and direction string.
 };
-GameControls.defaultProps = { playerDisplayNames: {} };
 
 const Scoreboard = React.memo(
   ({
-    scores,
-    playerDisplayNames,
-    currentPlayerKey,
+    playerScore, // Direct prop
+    aiScore, // Direct prop
+    playerDisplayNames, // Static from parent Board
+    currentPlayer, // "human" or "ai"
     tilesInBag,
-    gameMode,
     isAiThinking,
   }) => {
-    const playerKeys = playerDisplayNames
-      ? Object.keys(playerDisplayNames)
-      : [];
-    if (!scores || !playerDisplayNames)
+    const scores = { human: playerScore, ai: aiScore }; // Reconstruct for mapping if preferred
+    const playerKeys = ["human", "ai"]; // Static keys
+
+    if (
+      playerScore === undefined ||
+      aiScore === undefined ||
+      !playerDisplayNames
+    ) {
+      // Check direct props
       return <div className="scoreboard-loading">Loading scores...</div>;
+    }
 
     return (
       <div className="scoreboard">
@@ -429,17 +402,16 @@ const Scoreboard = React.memo(
           <div
             key={pKey}
             className={`score-item ${
-              currentPlayerKey === pKey ? "active-turn" : ""
+              currentPlayer === pKey ? "active-turn" : ""
             }`}
           >
             <span className="player-label">
               {playerDisplayNames[pKey] || pKey}:
             </span>
             <span className="score-value">{scores[pKey] || 0}</span>
-            {/* Show turn indicator only if not AI thinking (modal handles it) and it's current player */}
-            {currentPlayerKey === pKey && !isAiThinking && (
+            {currentPlayer === pKey && !isAiThinking && (
               <span className="turn-indicator">
-                {gameMode === "human_vs_ai" && pKey === "human"
+                {pKey === "human"
                   ? "★ Your Turn"
                   : `☆ ${playerDisplayNames[pKey]}'s Turn`}
               </span>
@@ -458,99 +430,63 @@ const Scoreboard = React.memo(
   }
 );
 Scoreboard.propTypes = {
-  scores: PropTypes.object, // Can be undefined initially
-  playerDisplayNames: PropTypes.object, // Can be undefined initially
-  currentPlayerKey: PropTypes.string, // Can be undefined initially
+  playerScore: PropTypes.number,
+  aiScore: PropTypes.number,
+  playerDisplayNames: PropTypes.object.isRequired,
+  currentPlayer: PropTypes.string,
   tilesInBag: PropTypes.number,
-  gameMode: PropTypes.string, // Can be undefined initially
   isAiThinking: PropTypes.bool.isRequired,
 };
 
 const ObjectiveDisplay = React.memo(
-  ({ objectives, gameMode, playerDisplayNames, currentPlayerKey }) => {
-    if (!objectives || !playerDisplayNames || !gameMode) return null;
+  ({
+    humanObjective, // Direct prop for human's objective
+    playerDisplayNames, // Static from parent Board
+  }) => {
+    if (!humanObjective || !playerDisplayNames) return null;
 
-    if (gameMode === "human_vs_ai") {
-      const humanObjective = objectives["human"];
-      if (!humanObjective) return null;
-      const status = humanObjective.completed
-        ? "✅ Completed!"
-        : "⏳ In Progress";
-      return (
-        <div className="objective-display human-objective">
-          <h4 className="objective-title">Your Objective:</h4>
-          <p className="objective-desc">{humanObjective.desc || "N/A"}</p>
-          <p
-            className={`objective-status ${
-              humanObjective.completed ? "completed" : "in-progress"
-            }`}
-          >
-            Status: {status}{" "}
-            {humanObjective.bonus && `(+${humanObjective.bonus} pts)`}
-          </p>
-        </div>
-      );
-    } else if (gameMode === "ai_vs_ai") {
-      return (
-        <div className="ai-objectives-container">
-          {Object.keys(playerDisplayNames).map((pKey) => {
-            // Iterate using keys from playerDisplayNames
-            const objective = objectives[pKey];
-            const displayName = playerDisplayNames[pKey];
-            if (!objective)
-              return (
-                <div key={pKey} className="objective-display ai-objective-item">
-                  <h5 className="objective-title">
-                    {displayName}: No objective.
-                  </h5>
-                </div>
-              );
-            const status = objective.completed ? "✅" : "⏳";
-            const isCurrent = currentPlayerKey === pKey;
-            return (
-              <div
-                key={displayName}
-                className={`objective-display ai-objective-item ${
-                  isCurrent ? "current-ai-objective" : ""
-                }`}
-              >
-                <h5 className="objective-title">
-                  {displayName}'s Objective: {status}
-                </h5>
-                <p className="objective-desc small">
-                  {objective.desc} ({objective.bonus} pts)
-                </p>
-              </div>
-            );
-          })}
-        </div>
-      );
-    }
-    return null;
+    // AI vs AI mode branch removed. Only show human's objective.
+    const status = humanObjective.completed
+      ? "✅ Completed!"
+      : "⏳ In Progress";
+    return (
+      <div className="objective-display human-objective">
+        <h4 className="objective-title">
+          {playerDisplayNames.human}'s Objective:
+        </h4>{" "}
+        {/* Use static name */}
+        <p className="objective-desc">{humanObjective.desc || "N/A"}</p>
+        <p
+          className={`objective-status ${
+            humanObjective.completed ? "completed" : "in-progress"
+          }`}
+        >
+          Status: {status}{" "}
+          {humanObjective.bonus && `(+${humanObjective.bonus} pts)`}
+        </p>
+      </div>
+    );
   }
 );
 ObjectiveDisplay.propTypes = {
-  objectives: PropTypes.object, // Can be undefined initially
-  gameMode: PropTypes.string, // Can be undefined initially
-  playerDisplayNames: PropTypes.object, // Can be undefined initially
-  currentPlayerKey: PropTypes.string, // Can be undefined initially
+  humanObjective: PropTypes.object,
+  playerDisplayNames: PropTypes.object.isRequired,
 };
 
 const Board = ({
   board,
-  tiles,
-  scores,
-  playerDisplayNames,
-  currentPlayerKey,
-  gameMode,
+  tiles, // Human's rack from GameProvider
+  playerScore, // gameState.scores.human
+  aiScore, // gameState.scores.ai
+  currentPlayer, // gameState.current_player ("human" or "ai")
   gameOver,
   tilesInBag,
   firstMove,
-  playerObjectives,
+  humanObjective, // gameState.human_objective
   isAiThinking,
   selectedCell,
   selectedTile,
-  placedTiles,
+  placedTiles, // Tiles human is currently placing
   direction,
   onCellClick,
   onTileClick,
@@ -566,10 +502,16 @@ const Board = ({
       t.letter,
     ])
   );
-  const humanPlayerKey = gameMode === "human_vs_ai" ? "human" : null;
+  const playerDisplayNames = { human: "You", ai: "AI" }; // Static display names
 
-  if (!board || !scores || !playerDisplayNames || !playerObjectives) {
-    return <div className="board-loading-state">Preparing board...</div>; // Or some other placeholder
+  // Check for essential props to prevent rendering errors during initial load
+  if (
+    board === undefined ||
+    playerScore === undefined ||
+    aiScore === undefined ||
+    humanObjective === undefined
+  ) {
+    return <div className="board-loading-state">Preparing board...</div>;
   }
 
   return (
@@ -578,8 +520,8 @@ const Board = ({
         <div className="ai-thinking-modal-backdrop">
           <div className="ai-thinking-modal-card">
             <p>
-              AI ({playerDisplayNames?.[currentPlayerKey] || currentPlayerKey})
-              is thinking...
+              {playerDisplayNames[currentPlayer] || currentPlayer} is
+              thinking...
             </p>
             <span>Please wait</span> <div className="spinner"></div>
           </div>
@@ -604,8 +546,7 @@ const Board = ({
                     selectedCell?.col === colIndex
                   }
                   isAiThinking={isAiThinking}
-                  gameMode={gameMode}
-                  currentPlayerKey={currentPlayerKey}
+                  currentPlayer={currentPlayer} // Simplified: "human" or "ai"
                 />
               ))
             )}
@@ -613,37 +554,31 @@ const Board = ({
         </div>
         <div className="sidebar-area">
           <Scoreboard
-            scores={scores}
-            playerDisplayNames={playerDisplayNames}
-            currentPlayerKey={currentPlayerKey}
+            playerScore={playerScore}
+            aiScore={aiScore}
+            playerDisplayNames={playerDisplayNames} // Pass static names
+            currentPlayer={currentPlayer}
             tilesInBag={tilesInBag}
-            gameMode={gameMode}
             isAiThinking={isAiThinking}
           />
           <ObjectiveDisplay
-            objectives={playerObjectives}
-            gameMode={gameMode}
-            playerDisplayNames={playerDisplayNames}
-            currentPlayerKey={currentPlayerKey}
+            humanObjective={humanObjective} // Pass human's objective
+            playerDisplayNames={playerDisplayNames} // Pass static names
           />
 
           <div className="player-rack-section">
             <h3 className="rack-title">
-              {gameMode === "human_vs_ai" && humanPlayerKey
-                ? `${playerDisplayNames[humanPlayerKey] || "Your"} Tiles`
-                : gameMode === "ai_vs_ai"
-                ? `${
-                    playerDisplayNames[currentPlayerKey] || currentPlayerKey
-                  }'s Turn (Spectating)`
-                : "Tiles"}
+              {/* Simplified title based on whose turn it is */}
+              {currentPlayer === "human"
+                ? `${playerDisplayNames.human}'s Tiles`
+                : `${playerDisplayNames.ai}'s Turn`}
             </h3>
             <PlayerRack
-              tiles={tiles}
+              tiles={tiles} // This is always the human player's rack
               onTileClick={onTileClick}
               selectedTileIndex={selectedTile?.index ?? null}
               isAiThinking={isAiThinking}
-              gameMode={gameMode}
-              currentPlayerKey={currentPlayerKey}
+              currentPlayer={currentPlayer}
             />
           </div>
 
@@ -654,33 +589,28 @@ const Board = ({
             onClearPlacement={onClearPlacement}
             onPassTurn={onPassTurn}
             onNewGame={onNewGame}
-            currentPlayerKey={currentPlayerKey}
+            currentPlayer={currentPlayer}
             gameOver={gameOver}
             canSubmit={
-              gameMode === "human_vs_ai" &&
-              placedTiles &&
-              placedTiles.length > 0
-            }
+              currentPlayer === "human" && placedTiles && placedTiles.length > 0
+            } // Simplified condition
             isAiThinking={isAiThinking}
-            gameMode={gameMode}
-            playerDisplayNames={playerDisplayNames}
+            // playerDisplayNames not needed by GameControls itself
           />
-          {gameMode === "human_vs_ai" &&
+          {/* Show first move indicator only if human's turn, first move, not game over, and AI not thinking */}
+          {currentPlayer === "human" &&
             firstMove &&
             !gameOver &&
-            currentPlayerKey === humanPlayerKey &&
             !isAiThinking && (
               <div className="first-move-indicator">
-                {" "}
-                First move must cross center ★{" "}
+                First move must cross center ★
               </div>
             )}
-          {gameMode === "human_vs_ai" &&
-            !gameOver &&
-            !isAiThinking &&
-            currentPlayerKey === humanPlayerKey && (
-              <div className="turn-announcement"> Your Turn </div>
-            )}
+          {/* Show "Your Turn" announcement only if human's turn, not game over, and AI not thinking */}
+          {currentPlayer === "human" && !gameOver && !isAiThinking && (
+            <div className="turn-announcement"> Your Turn </div>
+          )}
+          {/* AI vs AI spectator messages removed */}
         </div>
       </div>
     </div>
@@ -689,16 +619,15 @@ const Board = ({
 
 Board.propTypes = {
   board: PropTypes.array,
-  scores: PropTypes.object,
-  playerDisplayNames: PropTypes.object,
-  currentPlayerKey: PropTypes.string,
-  gameMode: PropTypes.string,
+  tiles: PropTypes.array, // Human's rack from GameProvider
+  playerScore: PropTypes.number,
+  aiScore: PropTypes.number,
+  currentPlayer: PropTypes.string, // "human" or "ai"
   gameOver: PropTypes.bool,
   tilesInBag: PropTypes.number,
   firstMove: PropTypes.bool,
-  playerObjectives: PropTypes.object,
+  humanObjective: PropTypes.object, // Human's objective
   isAiThinking: PropTypes.bool.isRequired,
-  tiles: PropTypes.array,
   selectedCell: PropTypes.object,
   selectedTile: PropTypes.object,
   placedTiles: PropTypes.array,
@@ -714,12 +643,13 @@ Board.propTypes = {
 Board.defaultProps = {
   board: Array(15)
     .fill(null)
-    .map(() => Array(15).fill(null)), // Ensure board has a default
-  scores: {},
-  playerDisplayNames: {},
-  playerObjectives: {},
+    .map(() => Array(15).fill(null)),
   tiles: [],
+  playerScore: 0,
+  aiScore: 0,
+  humanObjective: null, // Or provide a default structure: { desc: '', completed: false, bonus: 0 }
   placedTiles: [],
+  // Default for other props if necessary, e.g. currentPlayer: "human"
 };
 
 export default Board;

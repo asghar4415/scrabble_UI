@@ -21,7 +21,6 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  /* Consider a specific Scrabble-like font if available */
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
@@ -50,7 +49,6 @@ body {
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  /* Consider a subtle background texture */
   background: linear-gradient(rgba(232, 228, 216, 0.8), rgba(232, 228, 216, 0.8)), url('./assets/bg.png'); /* Overlay color on background */
   background-size: cover;
   background-position: center;
@@ -75,7 +73,6 @@ body {
   box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.1);
 }
 
-/* Scrabble Title Tiles */
 .scrabble-title {
   display: flex;
   justify-content: center;
@@ -97,10 +94,8 @@ body {
   border-radius: 5px;
   box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2), inset 1px 1px 2px rgba(255,255,255,0.5);
   margin: 2px;
-  position: relative; /* For potential score */
+  position: relative; 
 }
-/* Add score-like element to title tiles? Optional */
-/* .scrabble-title span::after { ... } */
 
 .tagline {
   color: var(--dark-wood);
@@ -109,7 +104,6 @@ body {
   font-style: italic;
 }
 
-/* Game Mode Options */
 .game-options {
   display: flex;
   gap: clamp(1rem, 4vw, 2rem); /* Responsive gap */
@@ -123,8 +117,8 @@ body {
   border: 2px solid var(--light-wood);
   border-radius: 10px;
   padding: 1.5rem;
-  width: 100%; /* Default full width */
-  max-width: 320px; /* Max width per button */
+  width: 100%; 
+  max-width: 320px; 
   cursor: pointer;
   transition: all 0.3s ease;
   color: var(--dark-wood);
@@ -151,11 +145,10 @@ body {
   opacity: 0.9;
 }
 
-/* Tile visual within the option button */
 .game-option-btn .tile-letter {
   background: var(--pale-yellow);
   color: var(--crimson);
-  width: 45px; /* Fixed size */
+  width: 45px; 
   height: 45px;
   display: flex;
   align-items: center;
@@ -168,7 +161,6 @@ body {
   box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
   position: relative;
 }
-/* Score visual on the tile */
 .game-option-btn .tile-value {
   position: absolute;
   bottom: 3px;
@@ -182,9 +174,8 @@ body {
   flex-grow: 1;
 }
 
-/* Quick Rules Section */
 .scrabble-rules {
-  background-color: rgba(251, 247, 186, 0.3); /* More transparent */
+  background-color: rgba(251, 247, 186, 0.3); 
   padding: 1.5rem;
   border-radius: 8px;
   margin-top: 2rem;
@@ -210,27 +201,6 @@ body {
   font-size: 0.9rem;
 }
 
-/* Coming Soon / Placeholder Page */
-.coming-soon {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 80vh; /* Take up most viewport height */
-  padding: 2rem;
-  text-align: center;
-}
-/* Use the same frame style */
-.coming-soon .scrabble-board-frame {
-    max-width: 600px;
-}
-.coming-soon h2 {
-  color: var(--crimson);
-  margin-bottom: 1rem;
-}
-.coming-soon p {
-  color: var(--dark-wood);
-  margin-bottom: 1.5rem;
-}
 
 /* ====================
    Game Screen Styles
@@ -239,20 +209,19 @@ body {
 .game-screen {
   display: flex;
   justify-content: center;
-  align-items: flex-start; /* Align top */
+  align-items: flex-start; 
   min-height: 100vh;
-  padding: 1.5rem; /* Consistent padding */
-  background-color: #e8e4d8; /* Match body background */
+  padding: 1.5rem; 
+  background-color: #e8e4d8; 
 }
 
 .game-container {
   width: 100%;
-  max-width: 1100px; /* Match board container max-width */
+  max-width: 1100px; 
   margin: 0 auto;
-  padding: 10px; /* Minimal padding */
+  padding: 10px; 
 }
 
-/* Game Header (Optional - can be integrated into Board component) */
 .game-header {
   display: flex;
   justify-content: space-between;
@@ -269,7 +238,6 @@ body {
   font-weight: bold;
 }
 
-/* Loading / Message Styles */
 .loading-screen {
   display: flex;
   justify-content: center;
@@ -289,42 +257,27 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(255, 255, 255, 0.6); /* Semi-transparent white */
+    background: rgba(255, 255, 255, 0.6); 
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 1000; /* Ensure it's on top */
-    /* Add spinner or text */
+    z-index: 1000; 
     color: var(--crimson);
     font-size: 1.5em;
     font-weight: bold;
 }
-/* Basic spinner */
-/* .loading-overlay::after {
-    content: '';
-    display: block;
-    width: 40px;
-    height: 40px;
-    border: 4px solid var(--crimson);
-    border-top-color: transparent;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } } */
 
-
-/* Error and Info Messages (Global styling) */
 .error-message, .info-message {
   padding: 12px 18px;
   border-radius: 6px;
-  margin: 0 auto 15px auto; /* Center messages */
-  max-width: 95%; /* Limit width */
+  margin: 0 auto 15px auto; 
+  max-width: 95%; 
   display: flex;
   justify-content: space-between;
   align-items: center;
   font-size: 0.95rem;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  border-left: 5px solid; /* Add colored border */
+  border-left: 5px solid; 
 }
 
 .error-message {
@@ -342,10 +295,10 @@ body {
 .dismiss-error, .dismiss-info {
   background: none;
   border: none;
-  font-size: 1.6rem; /* Larger close button */
+  font-size: 1.6rem; 
   font-weight: bold;
   cursor: pointer;
-  padding: 0 0 0 15px; /* Padding on left */
+  padding: 0 0 0 15px; 
   line-height: 1;
 }
 .dismiss-error { color: var(--error-text); }
@@ -358,7 +311,7 @@ body {
 
 @media (max-width: 768px) {
   html {
-      font-size: 15px; /* Slightly smaller base font on mobile */
+      font-size: 15px; 
   }
   .welcome-screen {
       padding: 1rem;
@@ -372,18 +325,16 @@ body {
       align-items: center;
   }
   .game-option-btn {
-      max-width: none; /* Allow full width */
+      max-width: none; 
       width: 95%;
   }
 
-  /* Game Screen Adjustments */
    .game-screen {
        padding: 0.5rem;
    }
    .game-container {
        padding: 5px;
    }
-   /* Board component itself handles internal responsive via boardstyles.css */
 }
 
 @media (max-width: 480px) {
@@ -421,78 +372,9 @@ body {
          font-size: 0.8rem;
      }
 
-    /* Game Screen Adjustments */
     .error-message, .info-message {
         font-size: 0.9rem;
         padding: 10px 12px;
     }
 }
-
-/* --- START OF App.css ADDITIONS --- */
-
-/* AI Name Input Modal */
-.ai-name-modal-backdrop {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.6);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1050; /* Higher than AI thinking modal */
-}
-
-.ai-name-modal-card {
-  background-color: var(--tile-light);
-  padding: 20px 30px;
-  border-radius: 10px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-  border: 2px solid var(--dark-wood);
-  text-align: center;
-  width: 90%;
-  max-width: 400px;
-}
-
-.ai-name-modal-card h2 {
-  color: var(--crimson);
-  margin-bottom: 20px;
-}
-
-.ai-name-modal-card div {
-  margin-bottom: 15px;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-}
-
-.ai-name-modal-card label {
-  margin-bottom: 5px;
-  font-weight: 500;
-  color: var(--dark-wood);
-}
-
-.ai-name-modal-card input[type="text"] {
-  width: 100%;
-  padding: 8px 10px;
-  border-radius: 4px;
-  border: 1px solid var(--light-wood);
-  font-size: 1rem;
-}
-
-.ai-name-modal-card .control-button { /* Reuse existing button styles */
-    margin-top: 10px;
-    width: 100%;
-}
-.ai-name-modal-card .control-button.secondary {
-    background-color: var(--tile-dark);
-    color: var(--dark-wood);
-    border: 1px solid var(--light-wood);
-}
-.ai-name-modal-card .control-button.secondary:hover {
-    background-color: var(--board-bg);
-}
-
-
-/* --- END OF App.css ADDITIONS --- */
+/* Removed AI Name Input Modal CSS as it was for AI vs AI setup */

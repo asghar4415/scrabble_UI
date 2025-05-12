@@ -2,6 +2,8 @@
 
 Play an enhanced game of Scrabble against a challenging AI opponent! This project features a modern React-based frontend and a robust Python FastAPI backend, incorporating unique gameplay elements like power tiles and dynamic objectives.
 
+🎬 **Video Link:** `https://drive.google.com/file/d/1mn9Su7WVVHtlReQgTjntg6f1dvViUZ_e/view?usp=sharing`
+
 
 ## Features
 
@@ -97,10 +99,4 @@ Please follow the detailed setup instructions provided in the `README.md` file o
     *   Click "Pass" to skip your turn.
     *   Click "Restart" at any time to begin a new game.
 7.  **Winning:** The game ends when the tile bag is empty and one player uses all their tiles, or after a set number of consecutive passes by both players. The player with the highest score wins!
-
-## Demo Video
-
-🎬 **Watch a demo of the game:** `https://drive.google.com/file/d/1mn9Su7WVVHtlReQgTjntg6f1dvViUZ_e/view?usp=sharing`
-
-
 

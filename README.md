@@ -2,7 +2,7 @@
 
 Play an enhanced game of Scrabble against a challenging AI opponent! This project features a modern React-based frontend and a robust Python FastAPI backend, incorporating unique gameplay elements like power tiles and dynamic objectives.
 
-🎬 **Video Link:** `https://drive.google.com/file/d/1mn9Su7WVVHtlReQgTjntg6f1dvViUZ_e/view?usp=sharing`
+🎬 **Video Link:** [https://drive.google.com/file/d/1mn9Su7WVVHtlReQgTjntg6f1dvViUZ_e/view?usp=sharing](https://drive.google.com/file/d/1mn9Su7WVVHtlReQgTjntg6f1dvViUZ_e/view?usp=sharing)  
 
 
 ## Features

@@ -14,8 +14,8 @@ import {
 import Board from "./components/board";
 import "./App.css";
 
-const API_BASE_URL = "http://127.0.0.1:8000";
-// const API_BASE_URL = 'https://scrabble-backend-dzn8.onrender.com';
+// const API_BASE_URL = "http://127.0.0.1:8000";
+const API_BASE_URL = "https://scrabble-backend-dzn8.onrender.com";
 
 const GameContext = createContext(null);
 
@@ -442,9 +442,6 @@ const GameProvider = ({ children }) => {
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;
 };
 
-/**
- * Component for the application's home/welcome screen.
- */
 const HomePage = () => {
   const navigate = useNavigate();
   return (
@@ -487,13 +484,9 @@ const HomePage = () => {
   );
 };
 
-/**
- * Component that renders the main game screen.
- */
 const GamePage = () => {
   const game = useGame();
 
-  /** Wrapper for handling board cell clicks. */
   const handleCellClick = useCallback(
     (cell) => {
       if (game.isAiThinking) return;
@@ -601,9 +594,6 @@ const GamePage = () => {
   );
 };
 
-/**
- * Root component of the application.
- */
 function App() {
   return (
     <Router>

@@ -1,5 +1,3 @@
-// --- START OF FILE App.jsx ---
-
 import React, {
   createContext,
   useContext,
@@ -13,23 +11,21 @@ import {
   Routes,
   useNavigate,
 } from "react-router-dom";
-import Board from "./components/board"; // Ensure this path is correct
+import Board from "./components/board";
 import "./App.css";
 
+const API_BASE_URL = "http://127.0.0.1:8000";
 // const API_BASE_URL = 'https://scrabble-backend-dzn8.onrender.com';
-const API_BASE_URL = "http://127.0.0.1:8000"; // For local development
 
 const GameContext = createContext(null);
 
 export const useGame = () => {
-  // Added export for potential use in Board if needed, though direct props are better
   const context = useContext(GameContext);
   if (!context) {
     throw new Error("useGame must be used within a GameProvider");
   }
   return context;
 };
-
 const GameProvider = ({ children }) => {
   const [gameState, setGameState] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -71,12 +67,12 @@ const GameProvider = ({ children }) => {
             .map(() => Array(15).fill(null)),
         scores: stateData.scores || { human: 0, ai: 0 },
         current_player: stateData.current_player || "human",
-        player_rack: stateData.player_rack || [], // This is human's rack from backend
+        player_rack: stateData.player_rack || [],
         game_over: stateData.game_over || false,
         first_move:
           stateData.first_move === undefined ? true : stateData.first_move,
         tiles_in_bag: stateData.tiles_in_bag || 0,
-        human_objective: stateData.human_objective || null, // This is human's objective
+        human_objective: stateData.human_objective || null,
       });
       setMessage(stateData.message || "Game started! Your turn.");
     } catch (err) {
@@ -100,7 +96,7 @@ const GameProvider = ({ children }) => {
 
   const handleStateUpdate = useCallback(
     (newState) => {
-      setGameState(newState); // newState from backend already has player_rack and human_objective for human
+      setGameState(newState);
       if (newState.message?.toLowerCase().includes("invalid move")) {
         setError(newState.message);
         setMessage("");
@@ -136,6 +132,7 @@ const GameProvider = ({ children }) => {
         )
       )
         return true;
+
       const firstTilePos = currentPlacedTiles[0].position;
       if (currentDirection === "horizontal") {
         if (firstTilePos.row !== center) return false;
@@ -154,60 +151,33 @@ const GameProvider = ({ children }) => {
     [gameState?.first_move]
   );
 
-  const getWordInfoForAPI = useCallback(() => {
+  /** Constructs the word segment placed by the player for API request. */
+  const getPlayerSegmentForAPI = useCallback(() => {
     if (!placedTiles || placedTiles.length === 0) return null;
-    const axis = direction === "horizontal" ? "col" : "row";
-    const fixedAxis = direction === "horizontal" ? "row" : "col";
-    const sortedTiles = [...placedTiles].sort(
-      (a, b) => a.position[axis] - b.position[axis]
-    );
-    const firstTile = sortedTiles[0];
-    const fixedValue = firstTile.position[fixedAxis];
-    let startPos = firstTile.position[axis];
-    while (startPos > 0) {
-      const r = direction === "horizontal" ? fixedValue : startPos - 1;
-      const c = direction === "horizontal" ? startPos - 1 : fixedValue;
-      if (gameState.board[r]?.[c]) startPos--;
-      else break;
-    }
-    let endPos = sortedTiles[sortedTiles.length - 1].position[axis];
-    while (endPos < 14) {
-      const r = direction === "horizontal" ? fixedValue : endPos + 1;
-      const c = direction === "horizontal" ? endPos + 1 : fixedValue;
-      if (
-        gameState.board[r]?.[c] ||
-        placedTiles.some((t) => t.position[axis] === endPos + 1)
-      )
-        endPos++;
-      else break;
-    }
-    let word = "";
-    const placedMap = new Map(
-      placedTiles.map((t) => [`${t.position.row},${t.position.col}`, t.letter])
-    );
-    for (let i = startPos; i <= endPos; i++) {
-      const r = direction === "horizontal" ? fixedValue : i;
-      const c = direction === "horizontal" ? i : fixedValue;
-      const pL = placedMap.get(`${r},${c}`);
-      const bL = gameState.board[r]?.[c];
-      if (pL) word += pL;
-      else if (bL) word += bL;
-      else {
-        setError("Gap in word.");
-        return null;
-      }
-    }
+
+    const sortedTiles = [...placedTiles].sort((a, b) => {
+      return direction === "horizontal"
+        ? a.position.col - b.position.col
+        : a.position.row - b.position.row;
+    });
+
+    const wordSegment = sortedTiles.map((t) => t.letter).join("");
+    const startRow = sortedTiles[0].position.row;
+    const startCol = sortedTiles[0].position.col;
+
     return {
-      word,
-      row: direction === "horizontal" ? fixedValue : startPos,
-      col: direction === "horizontal" ? startPos : fixedValue,
+      word: wordSegment,
+      row: startRow,
+      col: startCol,
       direction,
     };
-  }, [placedTiles, direction, gameState?.board, setError]);
+  }, [placedTiles, direction]);
 
+  /** Sends the player's move to the backend. */
   const makePlayerMove = useCallback(async () => {
     if (isAiThinking) return;
     clearNotifications();
+
     if (placedTiles.length === 0) {
       setError("Place at least one tile.");
       return;
@@ -219,18 +189,23 @@ const GameProvider = ({ children }) => {
       setError("First move must cross center.");
       return;
     }
-    const wordInfo = getWordInfoForAPI();
-    if (!wordInfo) return;
+
+    const moveData = getPlayerSegmentForAPI();
+    if (!moveData) {
+      setError("Could not construct move data from placed tiles.");
+      return;
+    }
+
     setIsAiThinking(true);
     try {
       const response = await fetch(`${API_BASE_URL}/api/game/move`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(wordInfo),
+        body: JSON.stringify(moveData),
       });
       const newState = await response.json();
       if (!response.ok) {
-        throw new Error(newState.detail || "Move rejected.");
+        throw new Error(newState.detail || "Move rejected by server.");
       }
       handleStateUpdate(newState);
     } catch (err) {
@@ -240,24 +215,30 @@ const GameProvider = ({ children }) => {
     }
   }, [
     placedTiles,
-    gameState,
+    gameState?.first_move,
     direction,
     checkFirstMoveCenter,
-    getWordInfoForAPI,
+    getPlayerSegmentForAPI,
     handleStateUpdate,
     clearNotifications,
     setError,
     isAiThinking,
   ]);
 
+  /** Sends a 'pass' action to the backend. */
   const passTurn = useCallback(async () => {
     if (isAiThinking) return;
     clearNotifications();
+
     if (
       placedTiles.length > 0 &&
-      !window.confirm("Tiles on board will be cleared. Pass?")
-    )
+      !window.confirm(
+        "You have tiles placed on the board. Passing will clear them. Continue?"
+      )
+    ) {
       return;
+    }
+
     setIsAiThinking(true);
     resetTurnState();
     try {
@@ -266,7 +247,7 @@ const GameProvider = ({ children }) => {
       });
       const newState = await response.json();
       if (!response.ok) {
-        throw new Error(newState.detail || "Failed to pass.");
+        throw new Error(newState.detail || "Failed to pass turn.");
       }
       handleStateUpdate(newState);
     } catch (err) {
@@ -283,9 +264,11 @@ const GameProvider = ({ children }) => {
     isAiThinking,
   ]);
 
+  /** Validates if the selected tile can be placed at the given cell. */
   const validatePlacement = useCallback(
     (row, col) => {
       if (!gameState || !selectedTile) return false;
+
       if (
         gameState.board[row][col] ||
         placedTiles.some(
@@ -295,12 +278,13 @@ const GameProvider = ({ children }) => {
         setError("Cell is already occupied.");
         return false;
       }
+
       if (placedTiles.length > 0) {
         const firstPlaced = placedTiles[0].position;
         if (direction === "horizontal") {
           if (row !== firstPlaced.row) {
             setError(
-              "All tiles must be in the same row for horizontal placement."
+              "All tiles in a turn must be in the same row for horizontal placement."
             );
             return false;
           }
@@ -309,26 +293,25 @@ const GameProvider = ({ children }) => {
           );
           for (let i = 0; i < cols.length - 1; i++) {
             if (cols[i + 1] - cols[i] > 1) {
-              // Check for gaps
-              let gapExists = false;
+              let gapFilledByBoard = false;
               for (let c = cols[i] + 1; c < cols[i + 1]; c++) {
-                if (!gameState.board[row][c]) {
-                  // If gap isn't filled by existing board tile
-                  gapExists = true;
+                if (gameState.board[row][c]) {
+                  gapFilledByBoard = true;
                   break;
                 }
               }
-              if (gapExists) {
-                setError("Tiles must form a continuous line (no gaps).");
+              if (!gapFilledByBoard) {
+                setError(
+                  "Tiles must form a continuous line with existing tiles or themselves (no gaps)."
+                );
                 return false;
               }
             }
           }
         } else {
-          // Vertical
           if (col !== firstPlaced.col) {
             setError(
-              "All tiles must be in the same column for vertical placement."
+              "All tiles in a turn must be in the same column for vertical placement."
             );
             return false;
           }
@@ -337,17 +320,17 @@ const GameProvider = ({ children }) => {
           );
           for (let i = 0; i < rows.length - 1; i++) {
             if (rows[i + 1] - rows[i] > 1) {
-              // Check for gaps
-              let gapExists = false;
+              let gapFilledByBoard = false;
               for (let r = rows[i] + 1; r < rows[i + 1]; r++) {
-                if (!gameState.board[r][col]) {
-                  // If gap isn't filled by existing board tile
-                  gapExists = true;
+                if (gameState.board[r][col]) {
+                  gapFilledByBoard = true;
                   break;
                 }
               }
-              if (gapExists) {
-                setError("Tiles must form a continuous line (no gaps).");
+              if (!gapFilledByBoard) {
+                setError(
+                  "Tiles must form a continuous line with existing tiles or themselves (no gaps)."
+                );
                 return false;
               }
             }
@@ -359,13 +342,14 @@ const GameProvider = ({ children }) => {
     [gameState, selectedTile, placedTiles, direction, setError]
   );
 
+  /** Places the selected tile onto the board if valid. */
   const placeTileOnBoard = useCallback(
     (row, col) => {
       if (isAiThinking || !selectedTile) return;
       clearNotifications();
 
       if (!validatePlacement(row, col)) {
-        setSelectedTile(null); // Deselect tile if placement is invalid
+        setSelectedTile(null);
         return;
       }
 
@@ -378,9 +362,13 @@ const GameProvider = ({ children }) => {
       setSelectedTile(null);
       setSelectedCell(null);
 
-      if (placedTiles.length === 0 && selectedTile) {
-        // First tile being placed in a turn
-        // No need to set direction here explicitly, it's handled by user or default
+      if (placedTiles.length === 1) {
+        const firstTile = placedTiles[0];
+        if (newPlacedTile.position.row === firstTile.position.row) {
+          setDirection("horizontal");
+        } else if (newPlacedTile.position.col === firstTile.position.col) {
+          setDirection("vertical");
+        }
       }
     },
     [
@@ -388,45 +376,39 @@ const GameProvider = ({ children }) => {
       validatePlacement,
       clearNotifications,
       isAiThinking,
-      placedTiles.length,
+      placedTiles,
+      setDirection,
     ]
   );
 
+  /** Handles clicks on tiles in the player's rack. */
   const handleTileClick = useCallback(
     (tile) => {
       if (isAiThinking) return;
       clearNotifications();
+
       if (selectedTile && selectedTile.index === tile.index) {
-        setSelectedTile(null); // Deselect if clicking the same tile
+        setSelectedTile(null);
       } else if (tile.isPlaced) {
-        // Recall tile from board
-        const tileToRecall = placedTiles.find(
-          (pt) => pt.rackIndex === tile.index
+        setPlacedTiles((prev) =>
+          prev.filter((pt) => pt.rackIndex !== tile.index)
         );
-        if (tileToRecall) {
-          setPlacedTiles((prev) =>
-            prev.filter((pt) => pt.rackIndex !== tile.index)
-          );
-          // If recalling the only tile, direction can be reset or kept as is.
-          // If recalling one of multiple tiles, direction should be maintained based on remaining.
-          if (placedTiles.length === 1) {
-            // Optionally reset direction or maintain; current keeps it.
-          }
+        setSelectedTile(null);
+        if (placedTiles.length === 1) {
+          // Optionally reset direction
         }
-        setSelectedTile(null); // Ensure no tile is selected after recalling
       } else {
         setSelectedTile({ letter: tile.letter, index: tile.index });
-        setSelectedCell(null); // Deselect cell when a new tile is picked
+        setSelectedCell(null);
       }
     },
     [selectedTile, placedTiles, clearNotifications, isAiThinking]
   );
 
+  /** Clears all tiles placed on the board during the current turn. */
   const clearCurrentPlacement = useCallback(() => {
     if (isAiThinking) return;
     resetTurnState();
-    // Optionally, reset direction to default if desired
-    // setDirection("horizontal");
   }, [resetTurnState, isAiThinking]);
 
   useEffect(() => {
@@ -456,9 +438,13 @@ const GameProvider = ({ children }) => {
     clearCurrentPlacement,
     passTurn,
   };
+
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;
 };
 
+/**
+ * Component for the application's home/welcome screen.
+ */
 const HomePage = () => {
   const navigate = useNavigate();
   return (
@@ -479,17 +465,14 @@ const HomePage = () => {
             >
               <span className="tile-letter">P</span>
               <div className="option-text">
-                <h2>Play vs AI</h2> <p>Challenge our Advanced Scrabble AI.</p>
+                <h2>You vs AI</h2> <p>Challenge our Advanced Scrabble AI.</p>
               </div>
             </button>
-            {/* AI vs AI button removed */}
           </div>
           <div className="scrabble-rules">
             <h3>Quick Rules</h3>
             <ol>
-              <li>Form words left-to-right or top-to-bottom.</li>
               <li>First word must cross the center ★ square.</li>
-              <li>Connect subsequent words to existing tiles.</li>
               <li>Use premium squares (DL, TL, DW, TW) for bonus points!</li>
               <li>
                 Blanks (' ') are wildcards (0 points). Power Tiles (e.g., 'D'
@@ -504,9 +487,13 @@ const HomePage = () => {
   );
 };
 
+/**
+ * Component that renders the main game screen.
+ */
 const GamePage = () => {
   const game = useGame();
 
+  /** Wrapper for handling board cell clicks. */
   const handleCellClick = useCallback(
     (cell) => {
       if (game.isAiThinking) return;
@@ -517,9 +504,10 @@ const GamePage = () => {
         game.setSelectedCell(cell);
       }
     },
-    [game] // game object itself is a dependency
+    [game]
   );
 
+  /** Wrapper for handling rack tile clicks. */
   const handleTileClickWrapper = useCallback(
     (tile) => {
       if (!game.isAiThinking) game.handleTileClick(tile);
@@ -527,6 +515,7 @@ const GamePage = () => {
     [game]
   );
 
+  /** Wrapper for setting placement direction. */
   const setDirectionWrapper = useCallback(
     (dir) => {
       if (!game.isAiThinking) game.setDirection(dir);
@@ -534,6 +523,7 @@ const GamePage = () => {
     [game]
   );
 
+  /** Wrapper for clearing current placement. */
   const clearCurrentPlacementWrapper = useCallback(() => {
     if (!game.isAiThinking) game.clearCurrentPlacement();
   }, [game]);
@@ -548,7 +538,6 @@ const GamePage = () => {
     );
   }
 
-  // gameState.player_rack is always the human player's rack
   const availableRackTiles = game.gameState.player_rack
     ? game.gameState.player_rack.map((letter, index) => ({
         letter,
@@ -586,18 +575,18 @@ const GamePage = () => {
         )}
         <Board
           board={game.gameState.board}
-          tiles={availableRackTiles} // Human's rack tiles
+          tiles={availableRackTiles}
           playerScore={game.gameState.scores.human}
           aiScore={game.gameState.scores.ai}
           currentPlayer={game.gameState.current_player}
           gameOver={game.gameState.game_over}
           tilesInBag={game.gameState.tiles_in_bag}
           firstMove={game.gameState.first_move}
-          humanObjective={game.gameState.human_objective} // Human's objective
+          humanObjective={game.gameState.human_objective}
           isAiThinking={game.isAiThinking}
           selectedCell={game.selectedCell}
           selectedTile={game.selectedTile}
-          placedTiles={game.placedTiles} // Tiles human is currently placing
+          placedTiles={game.placedTiles}
           direction={game.direction}
           onCellClick={handleCellClick}
           onTileClick={handleTileClickWrapper}
@@ -612,6 +601,9 @@ const GamePage = () => {
   );
 };
 
+/**
+ * Root component of the application.
+ */
 function App() {
   return (
     <Router>
@@ -620,7 +612,6 @@ function App() {
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/vs-ai" element={<GamePage />} />
-            {/* Route for /ai-vs-ai removed */}
             <Route
               path="*"
               element={
@@ -637,4 +628,3 @@ function App() {
   );
 }
 export default App;
-// --- END OF FILE App.jsx ---

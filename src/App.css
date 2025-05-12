@@ -1,18 +1,17 @@
-/* App.css - Global Styles & Layout */
 :root {
-  --crimson: #9D1F15;      /* Primary accent color */
-  --pale-yellow: #FBF7BA;  /* Tile background */
-  --dark-wood: #5E3C23;    /* Wood texture / dark theme element */
-  --light-wood: #8B5E3C;   /* Lighter wood accents */
-  --tile-light: #F8F5E4;   /* Light cell background */
-  --tile-dark: #E6D9B8;    /* Darker cell background / board background */
-  --text-light: #f8f8f8;   /* Light text (on dark backgrounds) */
-  --text-dark: #333333;    /* Dark text (on light backgrounds) */
-  --highlight: #cce7ff;    /* Selection highlight */
-  --error-bg: #ffebee;     /* Background for error messages */
-  --error-text: #c62828;   /* Text color for error messages */
-  --info-bg: #e0f7fa;      /* Background for info messages */
-  --info-text: #006064;    /* Text color for info messages */
+  --crimson: #9D1F15;
+  --pale-yellow: #FBF7BA;
+  --dark-wood: #5E3C23;
+  --light-wood: #8B5E3C;
+  --tile-light: #F8F5E4;
+  --tile-dark: #E6D9B8;
+  --text-light: #f8f8f8;
+  --text-dark: #333333;
+  --highlight: #cce7ff;
+  --error-bg: #ffebee;
+  --error-text: #c62828;
+  --info-bg: #e0f7fa;
+  --info-text: #006064;
   --disabled-bg: #cccccc;
   --disabled-text: #666666;
 }
@@ -25,13 +24,23 @@
 }
 
 html {
-  font-size: 16px; /* Base font size */
+  box-sizing: border-box;
+  font-size: 16px;
+  height: 100%;
+}
+
+*, *:before, *:after {
+  box-sizing: inherit;
 }
 
 body {
-  background-color: #e8e4d8; /* Overall page background - light tan */
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+  background-color: #e8e4d8;
   color: var(--text-dark);
   line-height: 1.5;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 .app {
@@ -40,16 +49,12 @@ body {
   flex-direction: column;
 }
 
-/* ====================
-   Welcome Screen Styles
-   ==================== */
-
 .welcome-screen {
   display: flex;
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background: linear-gradient(rgba(232, 228, 216, 0.8), rgba(232, 228, 216, 0.8)), url('./assets/bg.png'); /* Overlay color on background */
+  background: linear-gradient(rgba(232, 228, 216, 0.8), rgba(232, 228, 216, 0.8)), url('./assets/bg.png');
   background-size: cover;
   background-position: center;
   padding: 2rem;
@@ -57,17 +62,17 @@ body {
 
 .scrabble-board-frame {
   background: var(--dark-wood);
-  padding: clamp(15px, 4vw, 30px); /* Responsive padding */
+  padding: clamp(15px, 4vw, 30px);
   border-radius: 20px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), inset 0 0 15px rgba(0,0,0,0.3);
-  border: 10px solid #3A2516; /* Darker wood border */
-  max-width: 800px;
-  width: 100%;
+  max-width: 600px;
+  width: 80%;
+  max-height: 630px;
 }
 
 .welcome-content {
   background-color: var(--tile-light);
-  padding: clamp(1.5rem, 5vw, 3rem) clamp(1rem, 4vw, 2rem); /* Responsive padding */
+  padding: clamp(1.5rem, 5vw, 3rem) clamp(1rem, 4vw, 2rem);
   border-radius: 10px;
   text-align: center;
   box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.1);
@@ -76,40 +81,41 @@ body {
 .scrabble-title {
   display: flex;
   justify-content: center;
-  flex-wrap: wrap; /* Allow wrapping */
-  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.3rem;
   gap: 5px;
+  margin-top: -2rem;
 }
 
 .scrabble-title span {
-  display: inline-flex; /* Use inline-flex */
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: clamp(35px, 8vw, 50px); /* Responsive width */
-  height: clamp(45px, 10vw, 60px); /* Responsive height */
+  width: clamp(35px, 8vw, 50px);
+  height: clamp(45px, 10vw, 60px);
   background: var(--pale-yellow);
   color: var(--crimson);
-  font-size: clamp(1.5rem, 5vw, 2rem); /* Responsive font size */
+  font-size: clamp(1.4rem, 5vw, 1.8rem);
   font-weight: bold;
   border-radius: 5px;
   box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2), inset 1px 1px 2px rgba(255,255,255,0.5);
   margin: 2px;
-  position: relative; 
+  position: relative;
 }
 
 .tagline {
   color: var(--dark-wood);
-  font-size: clamp(1rem, 3vw, 1.3rem);
+  font-size: clamp(0.9rem, 3vw, 1.2rem);
   margin-bottom: 2rem;
   font-style: italic;
 }
 
 .game-options {
   display: flex;
-  gap: clamp(1rem, 4vw, 2rem); /* Responsive gap */
+  gap: clamp(1rem, 4vw, 2rem);
   justify-content: center;
   flex-wrap: wrap;
-  margin: 2rem 0;
+  margin: 1rem 0;
 }
 
 .game-option-btn {
@@ -117,8 +123,8 @@ body {
   border: 2px solid var(--light-wood);
   border-radius: 10px;
   padding: 1.5rem;
-  width: 100%; 
-  max-width: 320px; 
+  width: 100%;
+  max-width: 280px;
   cursor: pointer;
   transition: all 0.3s ease;
   color: var(--dark-wood);
@@ -126,6 +132,7 @@ body {
   align-items: center;
   text-align: left;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  height: 6rem;
 }
 
 .game-option-btn:hover {
@@ -135,20 +142,20 @@ body {
 }
 
 .game-option-btn h2 {
-  font-size: clamp(1.2rem, 4vw, 1.5rem);
+  font-size: clamp(1.3rem, 3vw, 1.3rem);
   margin-bottom: 0.5rem;
   color: var(--crimson);
 }
 
 .game-option-btn p {
-  font-size: clamp(0.8rem, 2.5vw, 0.9rem);
+  font-size: clamp(0.6rem, 2.5vw, 0.8rem);
   opacity: 0.9;
 }
 
 .game-option-btn .tile-letter {
   background: var(--pale-yellow);
   color: var(--crimson);
-  width: 45px; 
+  width: 45px;
   height: 45px;
   display: flex;
   align-items: center;
@@ -175,7 +182,7 @@ body {
 }
 
 .scrabble-rules {
-  background-color: rgba(251, 247, 186, 0.3); 
+  background-color: rgba(251, 247, 186, 0.3);
   padding: 1.5rem;
   border-radius: 8px;
   margin-top: 2rem;
@@ -201,25 +208,20 @@ body {
   font-size: 0.9rem;
 }
 
-
-/* ====================
-   Game Screen Styles
-   ==================== */
-
 .game-screen {
   display: flex;
   justify-content: center;
-  align-items: flex-start; 
+  align-items: flex-start;
   min-height: 100vh;
-  padding: 1.5rem; 
-  background-color: #e8e4d8; 
+  padding: 1.5rem;
+  background-color: #e8e4d8;
 }
 
 .game-container {
   width: 100%;
-  max-width: 1100px; 
+  max-width: 1100px;
   margin: 0 auto;
-  padding: 10px; 
+  padding: 10px;
 }
 
 .game-header {
@@ -257,11 +259,11 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(255, 255, 255, 0.6); 
+    background: rgba(255, 255, 255, 0.6);
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 1000; 
+    z-index: 1000;
     color: var(--crimson);
     font-size: 1.5em;
     font-weight: bold;
@@ -270,14 +272,14 @@ body {
 .error-message, .info-message {
   padding: 12px 18px;
   border-radius: 6px;
-  margin: 0 auto 15px auto; 
-  max-width: 95%; 
+  margin: 0 auto 15px auto;
+  max-width: 95%;
   display: flex;
   justify-content: space-between;
   align-items: center;
   font-size: 0.95rem;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  border-left: 5px solid; 
+  border-left: 5px solid;
 }
 
 .error-message {
@@ -295,23 +297,18 @@ body {
 .dismiss-error, .dismiss-info {
   background: none;
   border: none;
-  font-size: 1.6rem; 
+  font-size: 1.6rem;
   font-weight: bold;
   cursor: pointer;
-  padding: 0 0 0 15px; 
+  padding: 0 0 0 15px;
   line-height: 1;
 }
 .dismiss-error { color: var(--error-text); }
 .dismiss-info { color: var(--info-text); }
 
-
-/* ====================
-   Media Queries
-   ==================== */
-
 @media (max-width: 768px) {
   html {
-      font-size: 15px; 
+      font-size: 15px;
   }
   .welcome-screen {
       padding: 1rem;
@@ -325,7 +322,7 @@ body {
       align-items: center;
   }
   .game-option-btn {
-      max-width: none; 
+      max-width: none;
       width: 95%;
   }
 
@@ -377,4 +374,3 @@ body {
         padding: 10px 12px;
     }
 }
-/* Removed AI Name Input Modal CSS as it was for AI vs AI setup */
